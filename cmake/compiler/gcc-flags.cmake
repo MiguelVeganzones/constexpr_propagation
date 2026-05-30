@@ -5,6 +5,7 @@
 set(COMMON_FLAGS
     -fverbose-asm
     -freflection
+    -fno-exceptions
 )
 
 set(WARNINGS

@@ -1,4 +1,5 @@
-#include "tensor/tensor.hpp"
+#include "tensor/v1/tensor.hpp"
+#include "tensor/v1/tensor_operations.hpp"
 #include "utility/parser.hpp"
 #include <iostream>
 #include <print>
@@ -17,7 +18,7 @@ struct cmd_opts
 auto main(int argc, char* argv[]) -> int
 {
     using F        = float;
-    using tensor_t = tensor::dynamic_tensor<F>;
+    using tensor_t = v1::tensor::tensor<F>;
 
     auto const opts = cmd::parse_options<cmd_opts>({ argv, argv + argc });
     std::println("opts.sizes is {}", opts.a_sizes);
@@ -25,10 +26,10 @@ auto main(int argc, char* argv[]) -> int
 
     tensor_t a(opts.a_sizes);
     tensor_t b(opts.b_sizes);
-    std::ranges::iota(a.buffer_, 0);
-    std::ranges::iota(b.buffer_, 0);
+    std::ranges::iota(a.buffer(), 0);
+    std::ranges::iota(b.buffer(), 0);
     std::cout << a << '\n';
     std::cout << b << '\n';
-    auto const c  = contract(a, b, opts.cis);
+    auto const c  = tensor_contraction(a, b, opts.cis);
     std::cout << c << '\n';
 }

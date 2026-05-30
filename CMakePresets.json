@@ -24,8 +24,7 @@
             "inherits": "gcc-base",
             "binaryDir": "build/gcc-relwdebinfo",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-                "CMAKE_CXX_FLAGS": "-S -fverbose-asm"
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
             }
         },
         {

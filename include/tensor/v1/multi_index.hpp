@@ -1,6 +1,5 @@
 #pragma once
 
-#include "tensor.hpp"
 #include <algorithm>
 #include <array>
 #include <concepts>
@@ -11,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace tensor
+namespace v1::tensor
 {
 
 template <std::integral Index_Type>
@@ -26,12 +25,12 @@ struct multi_index
     using reference       = std::vector<size_type>::reference;
 
     explicit multi_index(
-        std::vector<size_type> const& sizes,
-        std::vector<size_type> const& strides,
+        size_type const* const sizes,
+        size_type const* const strides,
         size_type              rank
     ) noexcept
-        : sizes_(std::cbegin(sizes), rank)
-        , strides_(std::cbegin(strides), rank)
+        : sizes_(sizes, rank)
+        , strides_(strides, rank)
         , idxs_(rank, size_type{})
         , rank_{ rank }
     {
@@ -149,4 +148,4 @@ struct multi_index
     auto operator<=>(multi_index const&) const noexcept = default;
 };
 
-} // namespace tensor
+} // namespace v1::tensor
