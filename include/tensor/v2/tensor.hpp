@@ -1,7 +1,7 @@
 #ifndef INCLUDED_STATIC_TENSOR
 #define INCLUDED_STATIC_TENSOR
 
-#include "container_concepts.hpp"
+#include "utility/utility_concepts.hpp"
 #include <cassert>
 #include <concepts>
 #include <memory>
@@ -29,12 +29,12 @@ struct tensor
         requires std::is_same_v<
                      std::ranges::range_value_t<std::remove_cvref_t<decltype(dims)>>,
                      size_type> &&
-                 std::ranges::sized_range<decltype(dims)> &&
-                 (std::ranges::size(dims) == Rank)
+                 std::ranges::sized_range<decltype(dims)>
         : flat_size_{}
     {
+        assert(std::ranges::size(dims) == Rank);
         std::ranges::copy(dims, sizes_);
-        flat_size_          = sizes_[s_rank - 1];
+        flat_size_           = sizes_[s_rank - 1];
         strides_[s_rank - 1] = size_type{ 1 };
         for (size_type i = s_rank - 1; i-- > size_type{};)
         {
@@ -77,6 +77,18 @@ struct tensor
     }
 
     [[nodiscard]]
+    auto sizes() const noexcept -> std::span<size_type const>
+    {
+        return std::span{ sizes_ };
+    }
+
+    [[nodiscard]]
+    auto strides() const noexcept -> std::span<size_type const>
+    {
+        return std::span{ strides_ };
+    }
+
+    [[nodiscard]]
     auto sizes_data() const noexcept -> size_type const*
     {
         return sizes_;
@@ -109,10 +121,10 @@ struct tensor
     std::unique_ptr<value_type[]> buffer_;
 };
 
-template <typename T>
-auto operator<<(std::ostream& os, tensor<T> const& t) noexcept -> std::ostream&
+template <typename T, std::integral auto Rank>
+auto operator<<(std::ostream& os, tensor<T, Rank> const& t) noexcept -> std::ostream&
 {
-    for (auto const& e : t.buffer)
+    for (auto const& e : t.buffer())
     {
         os << e << ", ";
     }

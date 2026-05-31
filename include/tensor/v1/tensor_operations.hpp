@@ -1,4 +1,5 @@
 #pragma once
+#include "tensor.hpp"
 #include <concepts>
 #include <utility>
 
@@ -23,73 +24,18 @@ auto increment_index(
     return false;
 }
 
-// template <typename T>
-// inline std::vector<size_t> compute_output_shape(
-//     tensor<T> const&                           a,
-//     tensor<T> const&                           b,
-//     std::vector<std::pair<
-//         typename tensor<T>::size_type,
-//         typename tensor<T>::size_type>> const& cis
-// )
-// {
-//     using tensor_t           = tensor<T>;
-//     using size_type          = typename tensor_t::size_type;
-//     const size_type in_rank  = a.rank() + b.rank();
-//     const size_type out_rank = in_rank - 2 * cis.size();
-//     using ret_t              = std::vector<size_type>;
-//     ret_t ret(out_rank);
-//
-//     size_type k = 0;
-//     for (auto i = size_type{}; i != a.rank(); ++i)
-//     {
-//         if (std::ranges::find_if(cis, [&i](auto const& p) { return p.first == i; }) !=
-//             std::cend(cis))
-//         {
-//             continue;
-//         }
-//         ret[k++] = a.size(i);
-//     }
-//     for (auto j = size_type{}; j != b.rank(); ++j)
-//     {
-//         if (std::ranges::find_if(cis, [&j](auto const& p) { return p.second == j; }) !=
-//             std::cend(cis))
-//         {
-//             continue;
-//         }
-//         ret[k++] = b.size(j);
-//     }
-//     assert(k == out_rank);
-//
-//     return ret;
-// }
-
-// template <std::integral I>
-// auto offset(
-//     std::ranges::range auto const& idx,
-//     std::ranges::range auto const& strides
-// ) noexcept -> I
-// {
-//     I off{};
-//     for (I i = 0; i < static_cast<I>(idx.size()); ++i)
-//     {
-//         off += idx[i] * strides[i];
-//     }
-//     return off;
-// }
-
-
 template <typename T>
 [[gnu::noinline]]
 auto tensor_contraction(
-    tensor<T> const&                         A,
-    tensor<T> const&                         B,
-    std::vector<std::pair<
-        typename tensor<T>::index_t,
-        typename tensor<T>::index_t>> const& cis
+    tensor<T> const& A,
+    tensor<T> const& B,
+    std::vector<
+        std::pair<typename tensor<T>::index_t, typename tensor<T>::index_t>> const& cis
 )
 {
-    using size_type = typename tensor<T>::size_type;
-    using index_t   = typename tensor<T>::index_t;
+    using tensor_t  = tensor<T>;
+    using size_type = typename tensor_t::size_type;
+    using index_t   = typename tensor_t::index_t;
 
 #ifndef NDEBUG
     for (auto const& [a_axis, b_axis] : cis)
@@ -110,25 +56,25 @@ auto tensor_contraction(
         a_contracted[a] = true;
         b_contracted[b] = true;
     }
-    for (size_type i = 0; i < A.rank(); ++i)
+    for (size_type i{}; i != A.rank(); ++i)
     {
         if (!a_contracted[i]) out_sizes.push_back(A.size(i));
     }
-    for (size_type i = 0; i < B.rank(); ++i)
+    for (size_type i{}; i != B.rank(); ++i)
     {
         if (!b_contracted[i]) out_sizes.push_back(B.size(i));
     }
-    tensor<T> C(out_sizes);
+    tensor_t C(out_sizes);
 
     std::vector<size_type> a_free_axes;
     std::vector<size_type> b_free_axes;
     a_free_axes.reserve(A.rank() - cis.size());
     b_free_axes.reserve(B.rank() - cis.size());
-    for (size_type i = 0; i < A.rank(); ++i)
+    for (size_type i{}; i != A.rank(); ++i)
     {
         if (!a_contracted[i]) a_free_axes.push_back(i);
     }
-    for (size_type i = 0; i < B.rank(); ++i)
+    for (size_type i{}; i != B.rank(); ++i)
     {
         if (!b_contracted[i]) b_free_axes.push_back(i);
     }
@@ -168,4 +114,4 @@ auto tensor_contraction(
     return C;
 }
 
-} // namespace tensor
+} // namespace v1::tensor
