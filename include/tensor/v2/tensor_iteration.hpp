@@ -9,7 +9,7 @@
 #include <numeric>
 #include <type_traits>
 
-namespace v2::tensor::iteration
+namespace v2::iteration
 {
 
 namespace detail
@@ -128,6 +128,6 @@ constexpr auto shaped_for_inner(
     );
 }
 
-} // namespace v2::tensor::iteration
+} // namespace v2::iteration
 
 #endif // INCLUDED_CONTAINER_MANIPULATIONS

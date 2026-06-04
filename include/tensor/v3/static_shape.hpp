@@ -1,8 +1,7 @@
 #ifndef INCLUDED_STATIC_SHAPE
 #define INCLUDED_STATIC_SHAPE
 
-#include "container_concepts.hpp"
-#include "utility/utility_concepts.hpp"
+#include "common/container_concepts.hpp"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -11,16 +10,14 @@
 #    define AMR_CONTAINERS_CHECKBOUNDS
 #endif
 
-namespace amr::containers
+namespace v3
 {
 
-template <concepts::Container auto Sizes>
+template <containers::concepts::Container auto Sizes>
     requires std::integral<typename decltype(Sizes)::value_type>
 class static_shape
 {
 public:
-    // TODO: This can be dangerous, maybe hardcode a type once we know what we
-    // need
     using size_type = typename decltype(Sizes)::value_type;
     using rank_t    = size_type;
     using index_t   = size_type;
@@ -70,6 +67,6 @@ public:
     }
 };
 
-} // namespace amr::containers
+} // namespace v3::tensor
 
 #endif // INCLUDED_STATIC_SHAPE

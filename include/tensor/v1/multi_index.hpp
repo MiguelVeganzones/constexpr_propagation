@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace v1::tensor
+namespace v1
 {
 
 template <std::integral Index_Type>

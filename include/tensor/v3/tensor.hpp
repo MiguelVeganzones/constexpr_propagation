@@ -1,7 +1,8 @@
 #ifndef INCLUDED_STATIC_TENSOR
 #define INCLUDED_STATIC_TENSOR
 
-#include "container_concepts.hpp"
+#include "common/container_concepts.hpp"
+#include "utility/utility_concepts.hpp"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -12,33 +13,26 @@
 #include <string_view>
 #include <type_traits>
 
-namespace amr::containers
+namespace v3
 {
 
-template <typename T, concepts::StaticLayout Layout>
-class static_tensor
+template <typename T, containers::concepts::StaticLayout Layout>
+struct tensor
 {
-public:
     using value_type      = std::remove_cv_t<T>;
     using layout_t        = Layout;
     using shape_t         = typename layout_t::shape_t;
     using size_type       = typename layout_t::size_type;
     using index_t         = typename layout_t::index_t;
     using rank_t          = typename layout_t::rank_t;
-    using multi_index_t   = typename layout_t::multi_index_t;
     using const_iterator  = value_type const*;
     using iterator        = value_type*;
     using const_reference = value_type const&;
     using reference       = value_type&;
 
-    template <typename U>
-    using rebind_t = static_tensor<U, layout_t>;
-
-private:
     static_assert(std::is_trivially_copyable_v<T>);
     static_assert(std::is_standard_layout_v<T>);
 
-public:
     [[nodiscard]]
     static constexpr auto flat_size() noexcept -> size_type
     {
@@ -104,14 +98,6 @@ public:
         return layout_t::linear_index(idxs);
     }
 
-public:
-    [[nodiscard]]
-    static constexpr auto zero() noexcept -> static_tensor
-    {
-        return static_tensor{};
-    }
-
-public:
     [[nodiscard]]
     constexpr auto
         operator[](std::ranges::contiguous_range auto const& idxs) const noexcept
@@ -120,7 +106,7 @@ public:
     // requires(std::ranges::size(idxs) == rank() &&
     // std::is_same_v<std::ranges::range_value_t<decltype(idxs)>, index_t>)
     {
-        return data_[linear_index(idxs)];
+        return buffer_[linear_index(idxs)];
     }
 
     [[nodiscard]]
@@ -140,7 +126,7 @@ public:
     constexpr auto underlying_at(const index_t i) const noexcept -> const_reference
     {
         static_assert(
-            sizeof(static_tensor) == sizeof(value_type) * elements(),
+            sizeof(tensor) == sizeof(value_type) * elements(),
             "Container must be compact to bypass the subscript operator!"
         );
         assert(i < elements());
@@ -148,7 +134,7 @@ public:
         {
             assert(i >= index_t{});
         }
-        return data_[i];
+        return buffer_[i];
     }
 
     template <typename... I>
@@ -156,7 +142,7 @@ public:
     [[nodiscard]]
     constexpr auto operator[](I const&... idxs) const noexcept -> const_reference
     {
-        return data_[linear_index(static_cast<index_t>(idxs)...)];
+        return buffer_[linear_index(static_cast<index_t>(idxs)...)];
     }
 
     template <typename... I>
@@ -170,7 +156,7 @@ public:
     [[nodiscard]]
     constexpr auto operator[](index_t const linear_idx) const noexcept -> const_reference
     {
-        return data_[linear_idx];
+        return buffer_[linear_idx];
     }
 
     [[nodiscard]]
@@ -182,147 +168,65 @@ public:
     [[nodiscard]]
     constexpr auto cbegin() const noexcept -> const_iterator
     {
-        return std::cbegin(data_);
+        return std::cbegin(buffer_);
     }
 
     [[nodiscard]]
     constexpr auto cend() const noexcept -> const_iterator
     {
-        return std::cend(data_);
+        return std::cend(buffer_);
     }
 
     [[nodiscard]]
     constexpr auto begin() const noexcept -> const_iterator
     {
-        return std::begin(data_);
+        return std::begin(buffer_);
     }
 
     [[nodiscard]]
     constexpr auto end() const noexcept -> const_iterator
     {
-        return std::end(data_);
+        return std::end(buffer_);
     }
 
     [[nodiscard]]
     constexpr auto begin() noexcept -> iterator
     {
-        return std::begin(data_);
+        return std::begin(buffer_);
     }
 
     [[nodiscard]]
     constexpr auto end() noexcept -> iterator
     {
-        return std::end(data_);
+        return std::end(buffer_);
     }
 
-public:
+    [[nodiscard]]
+    constexpr auto buffer() const noexcept -> std::span<value_type const, flat_size()>
+    {
+        return buffer_;
+    }
+
+    [[nodiscard]]
+    constexpr auto buffer() noexcept -> std::span<value_type, flat_size()>
+    {
+        return buffer_;
+    }
+
     // TODO: Alignment?
-    value_type data_[flat_size()];
+    value_type buffer_[flat_size()];
 };
 
-template <typename T, concepts::StaticLayout Layout>
-auto operator<<(std::ostream& os, static_tensor<T, Layout> const& t) noexcept
-    -> std::ostream&
+template <typename T, containers::concepts::StaticLayout Layout>
+auto operator<<(std::ostream& os, tensor<T, Layout> const& t) noexcept -> std::ostream&
 {
-    using tensor_t                 = std::remove_cvref_t<decltype(t)>;
-    static constexpr auto rank     = tensor_t::rank();
-    static constexpr auto newlines = []
+    for (auto const& e : t.buffer())
     {
-        static constexpr auto pool = [] constexpr -> auto
-        {
-            std::array<char, rank> arr{};
-            for (auto& e : arr)
-            {
-                e = '\n';
-            }
-            return arr;
-        }();
-        std::array<std::string_view, rank> arr{};
-        for (std::size_t d = 0; d != rank; ++d)
-        {
-            arr[d] = std::string_view(pool.data(), d + 1);
-        }
-        return arr;
-    }();
-    static constexpr auto prefixes = []
-    {
-        static constexpr auto pool = [] constexpr -> auto
-        {
-            std::array<char, rank * 2> arr{};
-            for (std::size_t d = 0; d != rank; ++d)
-            {
-                arr[d]        = ' ';
-                arr[d + rank] = '[';
-            }
-            return arr;
-        }();
-        std::array<std::string_view, rank> arr{};
-        for (std::size_t d = 0; d != rank; ++d)
-        {
-            arr[d] = std::string_view(pool.data() + d + 1, rank);
-        }
-        return arr;
-    }();
-    static constexpr auto postfix = []
-    {
-        static constexpr auto pool = [] constexpr -> auto
-        {
-            std::array<char, rank> arr{};
-            for (auto& e : arr)
-            {
-                e = ']';
-            }
-            return arr;
-        }();
-        std::array<std::string_view, rank> arr{};
-        for (std::size_t d = 0; d != rank; ++d)
-        {
-            arr[d] = std::string_view(pool.data(), d + 1);
-        }
-        return arr;
-    }();
-
-    auto multi_idx = typename tensor_t::multi_index_t{};
-
-    std::optional<int> width = std::nullopt;
-    if constexpr (std::is_arithmetic_v<T>)
-    {
-        // TODO: Improve. Max is not necessarily the most restrictive value
-        width = std::clamp(
-                    (int)std::ceil(std::log10(std::abs(std::ranges::max(t)) + 1)), 1, 7
-                ) +
-                1;
+        os << e << ", ";
     }
-
-    os << prefixes[rank - 1];
-    while (true)
-    {
-        if constexpr (std::is_arithmetic_v<T>)
-        {
-            os << std::setw(width.value()) << std::setfill(' ');
-        }
-        os << t[multi_idx];
-        auto res = multi_idx.increment();
-        if (!res)
-        {
-            break;
-        }
-        if (res.is_fastest())
-        {
-            os << ", ";
-        }
-        else
-        {
-            const auto i = res.reverse_incremented_idx() - 1;
-            os << postfix[i];
-            os << newlines[i];
-            os << prefixes[i];
-        }
-    }
-    os << postfix[rank - 1];
     return os;
 }
 
-} // namespace amr::containers
+} // namespace v3
 
 #endif // INCLUDED_STATIC_TENSOR

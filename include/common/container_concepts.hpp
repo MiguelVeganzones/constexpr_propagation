@@ -5,7 +5,7 @@
 #include <ranges>
 #include <type_traits>
 
-namespace amr::containers::concepts
+namespace containers::concepts
 {
 
 template <typename C>
@@ -25,7 +25,6 @@ concept StaticLayout = requires {
     typename L::size_type;
     typename L::index_t;
     typename L::rank_t;
-    typename L::multi_index_t;
     { L::rank() } -> std::same_as<typename L::rank_t>;
     { L::elements() } -> std::same_as<typename L::size_type>;
     { L::flat_size() } -> std::same_as<typename L::size_type>;
@@ -37,9 +36,6 @@ concept StaticLayout = requires {
     {
         L::stride(std::declval<typename L::index_t>())
     } -> std::same_as<typename L::size_type>;
-    {
-        L::linear_index(std::declval<typename L::multi_index_t>())
-    } -> std::same_as<typename L::index_t>;
     // {
     //     L::linear_index(std::declval<typename L::index_t[L::rank()]>())
     // } -> std::same_as<typename L::index_t>;
@@ -78,6 +74,6 @@ concept ContractionIndexSet = requires(CIS const& cis) {
     } -> std::convertible_to<std::pair<typename CIS::index_t, typename CIS::index_t>>;
 };
 
-} // namespace amr::containers::concepts
+} // namespace containers::concepts
 
 #endif // INCLUDED_CONTAINER_CONCEPTS

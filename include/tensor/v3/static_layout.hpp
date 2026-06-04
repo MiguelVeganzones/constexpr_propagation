@@ -1,8 +1,7 @@
 #ifndef INCLUDED_STATIC_LAYOUT
 #define INCLUDED_STATIC_LAYOUT
 
-#include "container_concepts.hpp"
-#include "multi_index.hpp"
+#include "common/container_concepts.hpp"
 #include <array>
 #include <cassert>
 #include <numeric>
@@ -12,10 +11,10 @@
 #    define AMR_CONTAINERS_CHECKBOUNDS
 #endif
 
-namespace amr::containers
+namespace v3
 {
 
-template <concepts::StaticShape Shape>
+template <containers::concepts::StaticShape Shape>
 class static_layout
 {
 public:
@@ -23,7 +22,6 @@ public:
     using size_type     = typename shape_t::size_type;
     using rank_t        = typename shape_t::rank_t;
     using index_t       = typename shape_t::index_t;
-    using multi_index_t = index::static_multi_index<index_t, shape_t>;
 
 private:
     inline static constexpr rank_t s_rank    = shape_t::rank();
@@ -128,21 +126,6 @@ public:
             assert(linear_idx >= 0);
         }
         return linear_idx;
-    }
-
-    [[nodiscard]]
-    constexpr static auto multi_index(index_t linear_idx) noexcept -> multi_index_t
-    {
-#ifdef AMR_CONTAINERS_CHECKBOUNDS
-        assert_in_bounds(linear_idx);
-#endif
-        multi_index_t ret{};
-        for (rank_t d = 0; d != s_rank; ++d)
-        {
-            ret[d] = linear_idx / s_strides[d];
-            linear_idx %= s_strides[d];
-        }
-        return ret;
     }
 
 private:

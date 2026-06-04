@@ -17,8 +17,9 @@ struct cmd_opts
 
 auto main(int argc, char* argv[]) -> int
 {
+    using namespace v1;
     using F        = float;
-    using tensor_t = v1::tensor::tensor<F>;
+    using tensor_t = tensor<F>;
 
     auto const opts = cmd::parse_options<cmd_opts>({ argv, argv + argc });
     std::println("opts.sizes is {}", opts.a_sizes);
@@ -30,6 +31,6 @@ auto main(int argc, char* argv[]) -> int
     std::ranges::iota(b.buffer(), 0);
     std::cout << a << '\n';
     std::cout << b << '\n';
-    auto const c  = tensor_contraction(a, b, opts.cis);
+    auto const c  =  tensor_contraction(a, b, opts.cis);
     std::cout << c << '\n';
 }

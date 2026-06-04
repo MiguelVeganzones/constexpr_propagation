@@ -6,7 +6,7 @@
 #include <ranges>
 #include <utility>
 
-namespace v2::tensor
+namespace v2
 {
 
 template <std::integral Index_Type, std::integral auto Order>
@@ -144,15 +144,12 @@ auto tensor_contraction(
 
     std::array<size_type, tensor_a_t::rank() - Order> a_free_axes{};
     std::array<size_type, tensor_b_t::rank() - Order> b_free_axes{};
-    std::array<size_type, tensor_a_t::rank() - Order> a_free_strides{};
-    std::array<size_type, tensor_b_t::rank() - Order> b_free_strides{};
     k = 0;
     for (size_type i{}; i != tensor_a_t::rank(); ++i)
     {
         if (!a_contracted[i])
         {
-            a_free_axes[k]    = i;
-            a_free_strides[k] = A.stride(i);
+            a_free_axes[k] = i;
             k++;
         }
     }
@@ -161,8 +158,7 @@ auto tensor_contraction(
     {
         if (!b_contracted[i])
         {
-            b_free_axes[k]    = i;
-            b_free_strides[k] = B.stride(i);
+            b_free_axes[k] = i;
             k++;
         }
     }
@@ -218,4 +214,4 @@ auto tensor_contraction(
     return C;
 }
 
-} // namespace v2::tensor
+} // namespace v2

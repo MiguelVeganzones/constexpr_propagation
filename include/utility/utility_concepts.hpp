@@ -1,31 +1,33 @@
 #pragma once
+
+#include <chrono>
 #include <concepts>
 #include <type_traits>
-#include <ranges>
 
 namespace utility::concepts
 {
 
 template <typename T>
+concept Initializable = requires { T::init(); };
+
+template <typename T>
 concept Arithmetic = std::is_arithmetic_v<T>;
 
-template <typename C>
-concept Container = requires {
-    typename C::size_type;
-    typename C::value_type;
-} && std::ranges::sized_range<C>;
-
-template <typename S>
-concept StaticShape = requires {
-    typename S::size_type;
-    typename S::index_t;
-    typename S::rank_t;
-    { S::rank() } -> std::same_as<typename S::rank_t>;
-    { S::elements() } -> std::same_as<typename S::size_type>;
-    { S::sizes() };
+template <typename T>
+concept RandomDistribution = requires(T t) {
+    typename T::param_type;
+    typename T::result_type;
+    { t() } -> std::same_as<typename T::result_type>;
+    requires std::constructible_from<T, typename T::param_type>;
 };
 
-template <typename A>
-concept StaticContainer = Container<A> && StaticShape<A>;
+template <typename T>
+concept Duration = requires(T t) { std::chrono::duration_cast<std::chrono::seconds>(t); };
+
+template <typename T, typename... Ts>
+concept is_any = std::disjunction_v<std::is_same<T, Ts>...>;
+
+template <typename T, typename... Ts>
+concept are_same = std::conjunction_v<std::is_same<T, Ts>...>;
 
 } // namespace utility::concepts

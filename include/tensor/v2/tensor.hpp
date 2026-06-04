@@ -1,6 +1,7 @@
 #ifndef INCLUDED_STATIC_TENSOR
 #define INCLUDED_STATIC_TENSOR
 
+#include "common/container_concepts.hpp"
 #include "utility/utility_concepts.hpp"
 #include <cassert>
 #include <concepts>
@@ -9,7 +10,7 @@
 #include <ranges>
 #include <type_traits>
 
-namespace v2::tensor
+namespace v2
 {
 
 template <utility::concepts::Arithmetic T, std::unsigned_integral auto Rank>
@@ -131,6 +132,6 @@ auto operator<<(std::ostream& os, tensor<T, Rank> const& t) noexcept -> std::ost
     return os;
 }
 
-} // namespace v2::tensor
+} // namespace v2
 
 #endif // INCLUDED_STATIC_TENSOR

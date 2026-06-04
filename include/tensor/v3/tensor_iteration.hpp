@@ -1,11 +1,10 @@
 #ifndef INCLUDED_CONTAINER_MANIPULATIONS
 #define INCLUDED_CONTAINER_MANIPULATIONS
 
-#include "container_concepts.hpp"
+#include "common/container_concepts.hpp"
 #include "container_utils.hpp"
 #include "loop_control.hpp"
-#include "static_tensor.hpp"
-#include "static_vector.hpp"
+#include "tensor.hpp"
 #include <algorithm>
 #include <array>
 #include <concepts>
@@ -13,60 +12,27 @@
 #include <numeric>
 #include <type_traits>
 
-namespace amr::containers::manipulators
+namespace v3::iteration
 {
 
 namespace detail
 {
 
-// TODO: Compare with and without [[gnu::always_inline, gnu::flatten]]
 template <
-    concepts::LoopControl Loop_Control,
-    std::integral auto    I,
-    std::integral... Indices>
-[[gnu::always_inline, gnu::flatten]]
-constexpr auto shaped_for_impl(auto&& fn, Indices... idxs, auto&&... args) noexcept
-    -> void
-{
-    using loop_t = Loop_Control;
-    using rank_t = typename loop_t::rank_t;
-
-    if constexpr (I == loop_t::rank())
-    {
-        static_assert(std::invocable<decltype(fn), decltype(args)..., decltype(idxs)...>);
-        std::invoke(
-            std::forward<decltype(fn)>(fn), std::forward<decltype(args)>(args)..., idxs...
-        );
-    }
-    else
-    {
-        for (auto i = loop_t::start(I); i != loop_t::end(I); i += loop_t::stride(I))
-        {
-            shaped_for_impl<loop_t, I + rank_t{ 1 }, Indices..., decltype(i)>(
-                std::forward<decltype(fn)>(fn),
-                idxs...,
-                i,
-                std::forward<decltype(args)>(args)...
-            );
-        }
-    }
-}
-
-template <
-    concepts::LoopControl Loop_Control,
-    std::integral auto    I,
-    std::integral         Index_Type>
+    containers::concepts::LoopControl Loop_Control,
+    std::integral auto                I,
+    std::integral                     Index_Type>
 [[gnu::always_inline, gnu::flatten]]
 constexpr auto shaped_for_impl(
-    auto&&                                        fn,
     std::array<Index_Type, Loop_Control::rank()>& idxs,
+    auto&&                                        fn,
     auto&&... args
 ) noexcept -> void
 {
     using loop_t = Loop_Control;
     using rank_t = typename loop_t::rank_t;
 
-    if constexpr (I == loop_t::rank())
+    if constexpr (rank_t{ I } == loop_t::rank())
     {
         static_assert(std::invocable<decltype(fn), decltype(args)..., decltype(idxs)>);
         std::invoke(
@@ -79,17 +45,62 @@ constexpr auto shaped_for_impl(
              idxs[I] += loop_t::stride(I))
         {
             shaped_for_impl<loop_t, I + rank_t{ 1 }, Index_Type>(
-                std::forward<decltype(fn)>(fn),
                 idxs,
+                std::forward<decltype(fn)>(fn),
                 std::forward<decltype(args)>(args)...
             );
         }
     }
 }
 
+template <
+    containers::concepts::LoopControl Loop_Control,
+    std::ranges::sized_range auto     A_Strides,
+    std::ranges::sized_range auto     B_Strides,
+    std::integral auto                I,
+    std::integral                     Index_Type>
+    requires(std::ranges::size(A_Strides) == Loop_Control::rank()) &&
+            (std::ranges::size(B_Strides) == Loop_Control::rank())
+constexpr auto shaped_for_inner_impl(
+    Index_Type a_index,
+    Index_Type b_index,
+    auto&&     fn,
+    auto&&... args
+) noexcept -> void
+{
+    using loop_t  = Loop_Control;
+    using rank_t  = typename loop_t::rank_t;
+    using index_t = Index_Type;
+
+    if constexpr (I == loop_t::rank())
+    {
+        static_assert(std::invocable<decltype(fn), decltype(args)..., index_t, index_t>);
+        std::invoke(
+            std::forward<decltype(fn)>(fn),
+            std::forward<decltype(args)>(args)...,
+            a_index,
+            b_index
+        );
+    }
+    else
+    {
+        for (auto i = loop_t::start(I); i != loop_t::end(I); i += loop_t::stride(I))
+        {
+            shaped_for_inner_impl<Loop_Control, A_Strides, B_Strides, I + rank_t{ 1 }>(
+                a_index,
+                b_index,
+                std::forward<decltype(fn)>(fn),
+                std::forward<decltype(args)>(args)...
+            );
+            a_index += A_Strides[I];
+            b_index += B_Strides[I];
+        }
+    }
+}
+
 } // namespace detail
 
-template <concepts::LoopControl Loop_Control>
+template <containers::concepts::LoopControl Loop_Control>
 [[gnu::always_inline, gnu::flatten]]
 constexpr auto shaped_for(auto&& fn, auto&&... args) noexcept -> void
 {
@@ -97,38 +108,29 @@ constexpr auto shaped_for(auto&& fn, auto&&... args) noexcept -> void
     using rank_t = typename loop_t::rank_t;
     std::array<typename loop_t::index_t, loop_t::rank()> idxs{};
     detail::shaped_for_impl<Loop_Control, rank_t{}>(
-        std::forward<decltype(fn)>(fn), idxs, std::forward<decltype(args)>(args)...
+        idxs, std::forward<decltype(fn)>(fn), std::forward<decltype(args)>(args)...
     );
 }
 
-template <concepts::LoopControl Loop_Control>
-[[gnu::always_inline, gnu::flatten]]
-constexpr auto for_each(auto&& a, auto&& fn, auto&&... args) noexcept -> void
-    requires concepts::StaticContainer<std::remove_cvref_t<decltype(a)>>
+template <
+    containers::concepts::LoopControl Loop_Control,
+    std::ranges::sized_range auto     A_Strides,
+    std::ranges::sized_range auto     B_Strides>
+    requires(std::ranges::size(A_Strides) == Loop_Control::rank()) &&
+            (std::ranges::size(B_Strides) == Loop_Control::rank())
+constexpr auto shaped_for_inner(auto&& fn, auto&&... args) noexcept -> void
 {
-    static_assert(std::is_same_v<
-                  typename std::remove_cvref_t<decltype(a)>::shape_t,
-                  typename Loop_Control::shape_t>);
-    shaped_for<Loop_Control>(
-        std::forward<decltype(fn)>(fn),
-        std::forward<decltype(a)>(a),
-        std::forward<decltype(args)>(args)...
-    );
-}
-
-[[gnu::always_inline, gnu::flatten]]
-constexpr auto apply(auto&& a, auto&& fn, auto&&... args) noexcept -> void
-    requires concepts::StaticContainer<std::remove_cvref_t<decltype(a)>>
-{
-    using s_t  = typename std::remove_cvref_t<decltype(a)>::shape_t;
-    using lc_t = control::loop_control<s_t, 0, s_t::sizes(), 1>;
-    for_each<lc_t>(
-        std::forward<decltype(a)>(a),
+    using loop_t  = Loop_Control;
+    using rank_t  = typename loop_t::rank_t;
+    using index_t = typename loop_t::index_t;
+    detail::shaped_for_inner_impl<loop_t, A_Strides, B_Strides, rank_t{}>(
+        index_t{},
+        index_t{},
         std::forward<decltype(fn)>(fn),
         std::forward<decltype(args)>(args)...
     );
 }
 
-} // namespace amr::containers::manipulators
+} // namespace v3::iteration
 
 #endif // INCLUDED_CONTAINER_MANIPULATIONS

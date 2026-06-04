@@ -3,7 +3,7 @@
 #include <concepts>
 #include <utility>
 
-namespace v1::tensor
+namespace v1
 {
 
 template <std::integral I>

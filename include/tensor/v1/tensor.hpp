@@ -1,4 +1,5 @@
 #pragma once
+#include "common/container_concepts.hpp"
 #include "multi_index.hpp"
 #include "utility/utility_concepts.hpp"
 #include <cassert>
@@ -7,7 +8,7 @@
 #include <numeric>
 #include <utility>
 
-namespace v1::tensor
+namespace v1
 {
 
 template <utility::concepts::Arithmetic T>
@@ -118,4 +119,4 @@ auto operator<<(std::ostream& os, tensor<T> const& t) noexcept -> std::ostream&
     return os;
 }
 
-} // namespace v1::tensor
+} // namespace v1
