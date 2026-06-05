@@ -4,7 +4,6 @@
 #include "common/container_concepts.hpp"
 #include "tensor_iteration.hpp"
 #include "utils.hpp"
-#include <iostream>
 
 namespace v3
 {

@@ -50,6 +50,12 @@ target_link_libraries(hpc_seminar
 )
 
 # ----------------------------
+# Policy targets
+# ----------------------------
+add_library(hpc_seminar_examples INTERFACE)
+add_library(hpc_seminar_tests INTERFACE)
+
+# ----------------------------
 # Compiler flags
 # ----------------------------
 if(NOT DEFINED WARNINGS)
@@ -66,3 +72,4 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # ----------------------------
 
 add_subdirectory(examples)
+add_subdirectory(tests)

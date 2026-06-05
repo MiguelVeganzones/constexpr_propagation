@@ -1,0 +1,5 @@
+if(EXISTS "/home/miguel/cse/4/hpc_modern_trends/project/tests/v2_generated[1]_tests.cmake")
+  include("/home/miguel/cse/4/hpc_modern_trends/project/tests/v2_generated[1]_tests.cmake")
+else()
+  add_test(v2_generated_NOT_BUILT v2_generated_NOT_BUILT)
+endif()

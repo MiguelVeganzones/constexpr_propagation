@@ -8,7 +8,7 @@ foreach(src ${EXAMPLE_SOURCES})
     add_executable(${target} ${src})
 
     target_link_libraries(${target} PRIVATE
-        hpc_seminar
+        hpc_seminar hpc_seminar_examples
     )
 
     set_target_properties(${target} PROPERTIES
