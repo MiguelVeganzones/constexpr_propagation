@@ -1,5 +1,0 @@
-if(EXISTS "/home/miguel/cse/4/hpc_modern_trends/project/tests/v3_generated[1]_tests.cmake")
-  include("/home/miguel/cse/4/hpc_modern_trends/project/tests/v3_generated[1]_tests.cmake")
-else()
-  add_test(v3_generated_NOT_BUILT v3_generated_NOT_BUILT)
-endif()
