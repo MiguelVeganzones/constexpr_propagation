@@ -15,7 +15,12 @@ file(GLOB TEST_SOURCES CONFIGURE_DEPENDS ./**/*.t.cpp)
 foreach(src ${TEST_SOURCES})
     get_filename_component(target ${src} NAME_WE)
     add_executable(${target} ${src})
-    target_link_libraries(${target} PRIVATE hpc_seminar hpc_seminar_tests GTest::gtest_main)
+    target_link_libraries(${target} PRIVATE
+        hpc_seminar
+        hpc_seminar_tests
+        compiler_warnings
+        GTest::gtest_main
+    )
     gtest_discover_tests(${target})
 endforeach()
 

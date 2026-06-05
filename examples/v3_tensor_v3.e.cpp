@@ -3,6 +3,7 @@
 #include "tensor/v3/static_shape.hpp"
 #include "tensor/v3/tensor.hpp"
 #include "tensor/v3/tensor_operations.hpp"
+#include "tensor/v3/utils.hpp"
 #include "utility/parser.hpp"
 #include <iostream>
 #include <print>

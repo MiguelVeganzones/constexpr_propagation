@@ -12,13 +12,8 @@ endif()
 # ----------------------------
 # Global compiler options target
 # ----------------------------
-add_library(compiler_options INTERFACE)
+add_library(compiler_warnings INTERFACE)
 
-target_compile_options(compiler_options INTERFACE
-    ${DIAGNOSTICS}
-    ${COMMON_FLAGS}
-
-    $<$<CONFIG:Debug>:${DEBUG_FLAGS} ${DEBUG_INFO}>
-    $<$<CONFIG:Release>:${RELEASE_FLAGS}>
-    $<$<CONFIG:RelWithDebInfo>:${RELWITHDEBINFO_FLAGS} ${DEBUG_INFO}>
+target_compile_options(compiler_warnings INTERFACE
+    ${WARNINGS}
 )

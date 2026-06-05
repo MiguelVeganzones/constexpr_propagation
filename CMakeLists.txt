@@ -18,12 +18,14 @@ endif()
 # ----------------------------
 # Output dir
 # ----------------------------
-set(OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin)
+set(OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin/examples)
+set(OUTPUT_DIR_BENCHMARKS ${CMAKE_BINARY_DIR}/bin/benchmarks)
 
 # ----------------------------
 # Options
 # ----------------------------
 include(cmake/compiler_options.cmake)
+include(cmake/compiler_warnings.cmake)
 
 # ----------------------------
 # Print Status
@@ -54,6 +56,7 @@ target_link_libraries(hpc_seminar
 # ----------------------------
 add_library(hpc_seminar_examples INTERFACE)
 add_library(hpc_seminar_tests INTERFACE)
+add_library(hpc_seminar_benchmarks INTERFACE)
 
 # ----------------------------
 # Compiler flags
@@ -73,3 +76,4 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_subdirectory(examples)
 add_subdirectory(tests)
+add_subdirectory(benchmarks)
