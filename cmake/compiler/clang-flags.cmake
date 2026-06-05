@@ -1,6 +1,13 @@
 # ----------------------------
 # Compiler flags
 # ----------------------------
+
+set(COMMON_FLAGS
+    -fverbose-asm
+    -freflection
+    -fno-exceptions
+)
+
 set(WARNINGS
     -fvisibility=hidden
     -pedantic
@@ -79,7 +86,6 @@ set(SANITIZERS
 	-fsanitize=signed-integer-overflow
 	-fsanitize=undefined
 )
-
 if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64|ARM64")
     list(APPEND SANITIZERS -fsanitize=leak)
 endif()

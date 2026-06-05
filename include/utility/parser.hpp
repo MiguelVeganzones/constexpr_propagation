@@ -1,3 +1,6 @@
+#ifndef INCLUDED_CMD_PARSER_UTILITY
+#define INCLUDED_CMD_PARSER_UTILITY
+
 #include <algorithm>
 #include <concepts>
 #include <iostream>
@@ -9,7 +12,7 @@
 #include <string_view>
 #include <vector>
 
-namespace cmd
+namespace utility::cmd
 {
 
 template <typename T, typename U>
@@ -83,3 +86,5 @@ auto parse_options(std::vector<std::string_view> const& args) -> Opts
 }
 
 } // namespace cmd
+
+#endif // INCLUDED_CMD_PARSER_UTILITY

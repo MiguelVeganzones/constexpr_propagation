@@ -1,8 +1,9 @@
 #include "common/tensor_printing.hpp"
+#include "tensor/v2/tensor_operations.hpp"
+#include "tensor/v2/utils.hpp"
 #include "tensor/v3/static_layout.hpp"
 #include "tensor/v3/static_shape.hpp"
 #include "tensor/v3/tensor.hpp"
-#include "tensor/v3/tensor_operations.hpp"
 #include "utility/parser.hpp"
 #include <iostream>
 #include <print>
@@ -13,6 +14,7 @@
 struct cmd_opts
 {
     using size_type = std::size_t;
+    std::vector<std::pair<size_type, size_type>> cis;
 };
 
 auto main(int argc, char* argv[]) -> int
@@ -32,9 +34,9 @@ auto main(int argc, char* argv[]) -> int
     using size_type        = std::
         common_type_t<typename tensor_a_t::size_type, typename tensor_b_t::size_type>;
 
-    auto const _ = utility::cmd::parse_options<cmd_opts>({ argv, argv + argc });
-    std::println("cx.sizes is {}", a_sizes);
-    std::println("cx.sizes is {}", b_sizes);
+    auto const opts = utility::cmd::parse_options<cmd_opts>({ argv, argv + argc });
+    std::println("cx.a_sizes is {}", a_sizes);
+    std::println("cx.b_sizes is {}", b_sizes);
 
     tensor_a_t a{};
     tensor_b_t b{};
@@ -42,10 +44,7 @@ auto main(int argc, char* argv[]) -> int
     std::ranges::iota(b.buffer(), 0);
     std::cout << "a\n" << a << '\n';
     std::cout << "b\n" << b << '\n';
-    constexpr auto cis = utils::types::contraction_index_set<size_type, Order>(std::array{
-        std::pair{ 0uz, 1uz },
-        std::pair{ 1uz, 0uz }
-    });
-    auto const     c   = tensor_contraction<cis>(a, b);
+    const auto cis = v2::utils::types::contraction_index_set<size_type, Order>(opts.cis);
+    auto const c   = v2::tensor_contraction(a, b, cis);
     std::cout << "c\n" << c << '\n';
 }

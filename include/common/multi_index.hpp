@@ -1,16 +1,17 @@
-#pragma once
+#ifndef INCLUDED_MULTI_INDEX
+#define INCLUDED_MULTI_INDEX
 
 #include <algorithm>
-#include <array>
 #include <concepts>
 #include <iostream>
+#include <iterator>
 #include <ranges>
 #include <span>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
-namespace v1
+namespace containers::midx
 {
 
 template <std::integral Index_Type>
@@ -24,11 +25,8 @@ struct multi_index
     using const_reference = std::vector<size_type>::const_reference;
     using reference       = std::vector<size_type>::reference;
 
-    explicit multi_index(
-        size_type const* const sizes,
-        size_type const* const strides,
-        size_type              rank
-    ) noexcept
+    template <std::input_iterator It1, std::input_iterator It2>
+    explicit multi_index(It1 sizes, It2 strides, size_type rank) noexcept
         : sizes_(sizes, rank)
         , strides_(strides, rank)
         , idxs_(rank, size_type{})
@@ -64,88 +62,109 @@ struct multi_index
         std::ranges::fill(idxs_, index_t{});
     }
 
+    struct increment_result_t
+    {
+        constexpr auto incremented_idx() const noexcept -> rank_t
+        {
+            return incremented_idx_;
+        }
+
+        constexpr auto reverse_incremented_idx() const noexcept -> rank_t
+        {
+            return incremented_idx_ == rank_ ? rank_
+                                             : rank_t{ rank_ - incremented_idx_ } - 1;
+        }
+
+        constexpr operator bool() const noexcept
+        {
+            return incremented_idx_ != rank_;
+        }
+
+        constexpr auto is_fastest() const noexcept -> bool
+        {
+            return incremented_idx_ == rank_t{ rank_ - 1 };
+        }
+
+        rank_t incremented_idx_;
+        rank_t rank_;
+    };
+
     [[nodiscard]]
-    auto increment() noexcept -> bool
+    constexpr auto increment() noexcept -> increment_result_t
     {
         for (rank_t d = rank_; d-- > 0;)
         {
             if (idxs_[d] != sizes_[d] - 1)
             {
                 ++idxs_[d];
-                return true;
+                return { d, rank_ };
             }
             else
             {
                 idxs_[d] = index_t{};
             }
         }
-        return false;
-    }
-
-    auto offset() const -> index_t
-    {
-        size_type off = 0;
-        for (rank_t i = 0; i < rank_; ++i)
-            off += idxs_[i] * strides_[i];
-        return off;
+        return { rank_, rank_ };
     }
 
     [[nodiscard]]
-    auto operator[](index_t const i) noexcept -> reference
+    constexpr auto operator[](index_t const i) noexcept -> reference
     {
         return const_cast<reference>(std::as_const(*this).operator[](i));
     }
 
     [[nodiscard]]
-    auto operator[](index_t const i) const noexcept -> const_reference
+    constexpr auto operator[](index_t const i) const noexcept -> const_reference
     {
         return idxs_[i];
     }
 
     [[nodiscard]]
-    auto cbegin() const noexcept -> const_iterator
+    constexpr auto cbegin() const noexcept -> const_iterator
     {
         return std::cbegin(idxs_);
     }
 
     [[nodiscard]]
-    auto cend() const noexcept -> const_iterator
+    constexpr auto cend() const noexcept -> const_iterator
     {
         return std::cend(idxs_);
     }
 
     [[nodiscard]]
-    auto begin() const noexcept -> const_iterator
+    constexpr auto begin() const noexcept -> const_iterator
     {
         return std::begin(idxs_);
     }
 
     [[nodiscard]]
-    auto end() const noexcept -> const_iterator
+    constexpr auto end() const noexcept -> const_iterator
     {
         return std::end(idxs_);
     }
 
     [[nodiscard]]
-    auto begin() noexcept -> iterator
+    constexpr auto begin() noexcept -> iterator
     {
         return std::begin(idxs_);
     }
 
     [[nodiscard]]
-    auto end() noexcept -> iterator
+    constexpr auto end() noexcept -> iterator
     {
         return std::end(idxs_);
     }
 
     [[nodiscard]]
-    auto data() const noexcept -> auto const&
+    constexpr auto data() const noexcept -> auto const&
     {
         return idxs_;
     }
 
     [[nodiscard]]
-    auto operator<=>(multi_index const&) const noexcept = default;
+    constexpr auto operator<=>(multi_index const&) const noexcept = default;
 };
 
-} // namespace v1::tensor
+} // namespace containers::midx
+
+#endif // INCLUDED_MULTI_INDEX_V1

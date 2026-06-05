@@ -1,5 +1,5 @@
-#ifndef INCLUDED_STATIC_TENSOR
-#define INCLUDED_STATIC_TENSOR
+#ifndef INCLUDED_STATIC_RANK_TENSOR_V2
+#define INCLUDED_STATIC_RANK_TENSOR_V2
 
 #include "common/container_concepts.hpp"
 #include "utility/utility_concepts.hpp"
@@ -16,9 +16,14 @@ namespace v2
 template <utility::concepts::Arithmetic T, std::unsigned_integral auto Rank>
 struct tensor
 {
-    using value_type = T;
-    using size_type  = std::size_t;
-    using index_t    = size_type;
+    using value_type      = T;
+    using size_type       = std::size_t;
+    using index_t         = size_type;
+    using rank_t          = size_type;
+    using const_iterator  = value_type const*;
+    using iterator        = value_type*;
+    using const_reference = value_type const&;
+    using reference       = value_type&;
 
     inline static constexpr size_type s_rank = Rank;
 
@@ -116,22 +121,48 @@ struct tensor
         return strides_[rank];
     }
 
+    [[nodiscard]]
+    constexpr auto cbegin() const noexcept -> const_iterator
+    {
+        return buffer_.get();
+    }
+
+    [[nodiscard]]
+    constexpr auto cend() const noexcept -> const_iterator
+    {
+        return buffer_.get() + flat_size_;
+    }
+
+    [[nodiscard]]
+    constexpr auto begin() const noexcept -> const_iterator
+    {
+        return buffer_.get();
+    }
+
+    [[nodiscard]]
+    constexpr auto end() const noexcept -> const_iterator
+    {
+        return buffer_.get() + flat_size_;
+    }
+
+    [[nodiscard]]
+    constexpr auto begin() noexcept -> iterator
+    {
+        return buffer_.get();
+    }
+
+    [[nodiscard]]
+    constexpr auto end() noexcept -> iterator
+    {
+        return buffer_.get() + flat_size_;
+    }
+
     size_type                     flat_size_;
     size_type                     sizes_[s_rank];
     size_type                     strides_[s_rank];
     std::unique_ptr<value_type[]> buffer_;
 };
 
-template <typename T, std::integral auto Rank>
-auto operator<<(std::ostream& os, tensor<T, Rank> const& t) noexcept -> std::ostream&
-{
-    for (auto const& e : t.buffer())
-    {
-        os << e << ", ";
-    }
-    return os;
-}
-
 } // namespace v2
 
-#endif // INCLUDED_STATIC_TENSOR
+#endif // INCLUDED_STATIC_RANK_TENSOR_V2

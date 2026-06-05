@@ -1,5 +1,5 @@
-#ifndef INCLUDED_CONTAINER_UTILS
-#define INCLUDED_CONTAINER_UTILS
+#ifndef INCLUDED_CONTAINER_UTILS_V3
+#define INCLUDED_CONTAINER_UTILS_V3
 
 #include "common/container_concepts.hpp"
 #include "loop_control.hpp"
@@ -274,7 +274,7 @@ struct tensor_contraction_result
         for (size_type i{}; i != s_order; ++i)
         {
             auto const& [_, b_axis] = CIS[i];
-           ret[i]                  = b_t::stride(b_axis);
+            ret[i]                  = b_t::stride(b_axis);
         }
         return ret;
     }();

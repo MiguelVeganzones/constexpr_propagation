@@ -1,6 +1,7 @@
-#pragma once
+#ifndef INCLUDED_STATIC_TENSOR_V1
+#define INCLUDED_STATIC_TENSOR_V1
+
 #include "common/container_concepts.hpp"
-#include "multi_index.hpp"
 #include "utility/utility_concepts.hpp"
 #include <cassert>
 #include <concepts>
@@ -14,9 +15,14 @@ namespace v1
 template <utility::concepts::Arithmetic T>
 struct tensor
 {
-    using value_type = T;
-    using size_type  = std::size_t;
-    using index_t    = size_type;
+    using value_type      = T;
+    using size_type       = std::size_t;
+    using index_t         = size_type;
+    using rank_t          = size_type;
+    using const_iterator  = value_type const*;
+    using iterator        = value_type*;
+    using const_reference = value_type const&;
+    using reference       = value_type&;
 
     static_assert(std::is_trivially_copyable_v<value_type>);
     static_assert(std::is_standard_layout_v<value_type>);
@@ -55,6 +61,18 @@ struct tensor
             return static_cast<value_type const&>(self.buffer_[i]);
         else
             return self.buffer_[i];
+    }
+
+    [[nodiscard]]
+    auto sizes() const noexcept -> std::span<size_type const>
+    {
+        return std::span{ metadata_.get(), metadata_.get() + rank_ };
+    }
+
+    [[nodiscard]]
+    auto strides() const noexcept -> std::span<size_type const>
+    {
+        return std::span{ metadata_.get() + rank_, metadata_.get() + 2 * rank_ };
     }
 
     [[nodiscard]]
@@ -102,21 +120,48 @@ struct tensor
         return metadata_[rank_ + rank];
     }
 
+    [[nodiscard]]
+    constexpr auto cbegin() const noexcept -> const_iterator
+    {
+        return buffer_.get();
+    }
+
+    [[nodiscard]]
+    constexpr auto cend() const noexcept -> const_iterator
+    {
+        return buffer_.get() + flat_size_;
+    }
+
+    [[nodiscard]]
+    constexpr auto begin() const noexcept -> const_iterator
+    {
+        return buffer_.get();
+    }
+
+    [[nodiscard]]
+    constexpr auto end() const noexcept -> const_iterator
+    {
+        return buffer_.get() + flat_size_;
+    }
+
+    [[nodiscard]]
+    constexpr auto begin() noexcept -> iterator
+    {
+        return buffer_.get();
+    }
+
+    [[nodiscard]]
+    constexpr auto end() noexcept -> iterator
+    {
+        return buffer_.get() + flat_size_;
+    }
+
     size_type                     rank_;
     size_type                     flat_size_;
     std::unique_ptr<size_type[]>  metadata_;
     std::unique_ptr<value_type[]> buffer_;
 };
 
-template <typename T>
-auto operator<<(std::ostream& os, tensor<T> const& t) noexcept -> std::ostream&
-{
-    multi_index midx(t.sizes_data(), t.strides_data(), t.rank());
-    do
-    {
-        os << t[midx] << ", ";
-    } while (midx.increment());
-    return os;
-}
-
 } // namespace v1
+
+#endif // INCLUDED_STATIC_TENSOR_V1

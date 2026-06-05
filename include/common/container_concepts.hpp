@@ -42,6 +42,14 @@ concept StaticLayout = requires {
 };
 
 template <typename S>
+concept StaticRank = requires {
+    typename S::size_type;
+    typename S::index_t;
+    typename S::rank_t;
+    { S::rank() } -> std::same_as<typename S::rank_t>;
+};
+
+template <typename S>
 concept StaticShape = requires {
     typename S::size_type;
     typename S::index_t;
@@ -53,6 +61,16 @@ concept StaticShape = requires {
 
 template <typename A>
 concept StaticContainer = Container<A> && StaticShape<A>;
+
+template <typename A>
+concept StaticRankContainer = Container<A> && StaticRank<A>;
+
+template <typename A>
+concept PrintableTensor = Container<A> && requires(A a) {
+    a.rank();
+    a.sizes();
+    a.strides();
+};
 
 template <typename C>
 concept LoopControl = requires {

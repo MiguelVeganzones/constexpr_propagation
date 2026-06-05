@@ -1,5 +1,5 @@
-#ifndef INCLUDED_LOOP_CONTROL
-#define INCLUDED_LOOP_CONTROL
+#ifndef INCLUDED_LOOP_CONTROL_V3
+#define INCLUDED_LOOP_CONTROL_V3
 
 #include "common/container_concepts.hpp"
 #include "utility/error_handling.hpp"
@@ -169,4 +169,4 @@ public:
 
 } // namespace v3
 
-#endif // INCLUDED_LOOP_CONTROL
+#endif // INCLUDED_LOOP_CONTROL_3

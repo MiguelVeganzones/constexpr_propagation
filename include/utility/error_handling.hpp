@@ -1,8 +1,10 @@
 #ifndef INCLUDED_ERROR_HANDLING_UTILITY
 #define INCLUDED_ERROR_HANDLING_UTILITY
 
+#ifdef NDEBUG
+#    include <utility>
+#endif
 #include <cassert>
-#include <utility>
 
 namespace utility::error_handling
 {

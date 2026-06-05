@@ -1,5 +1,5 @@
-#ifndef INCLUDED_STATIC_LAYOUT
-#define INCLUDED_STATIC_LAYOUT
+#ifndef INCLUDED_STATIC_LAYOUT_V3
+#define INCLUDED_STATIC_LAYOUT_V3
 
 #include "common/container_concepts.hpp"
 #include <array>
@@ -159,4 +159,4 @@ private:
 
 } // namespace amr::containers
 
-#endif // INCLUDED_STATIC_LAYOUT
+#endif // INCLUDED_STATIC_LAYOUT_V3

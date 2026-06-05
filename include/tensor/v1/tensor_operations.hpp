@@ -1,7 +1,12 @@
-#pragma once
+#ifndef INCLUDED_TENSOR_OPERATIONS_V1
+#define INCLUDED_TENSOR_OPERATIONS_V1
+
 #include "tensor.hpp"
+#include <algorithm>
 #include <concepts>
+#include <ranges>
 #include <utility>
+#include <vector>
 
 namespace v1
 {
@@ -24,70 +29,72 @@ auto increment_index(
     return false;
 }
 
-template <typename T>
-[[gnu::noinline]]
 auto tensor_contraction(
-    tensor<T> const& A,
-    tensor<T> const& B,
-    std::vector<
-        std::pair<typename tensor<T>::index_t, typename tensor<T>::index_t>> const& cis
+    containers::concepts::Container auto const&           a,
+    containers::concepts::Container auto const&           b,
+    containers::concepts::ContractionIndexSet auto const& cis
 )
 {
-    using tensor_t  = tensor<T>;
-    using size_type = typename tensor_t::size_type;
-    using index_t   = typename tensor_t::index_t;
+    using a_t = std::remove_cvref_t<decltype(a)>;
+    using b_t = std::remove_cvref_t<decltype(b)>;
+    using value_type =
+        std::common_type_t<typename a_t::value_type, typename b_t::value_type>;
+    using size_type =
+        std::common_type_t<typename a_t::size_type, typename b_t::size_type>;
+    using tensor_c_t = v1::tensor<value_type>;
 
 #ifndef NDEBUG
     for (auto const& [a_axis, b_axis] : cis)
     {
-        assert(A.size(a_axis) == B.size(b_axis));
+        assert(a.size(a_axis) == b.size(b_axis));
     }
 #endif
 
-    const size_type out_rank = A.rank() + B.rank() - 2 * cis.size();
+    const auto      order    = cis.order();
+    const size_type out_rank = a.rank() + b.rank() - 2 * order;
     assert(out_rank > 0);
     std::vector<size_type> out_sizes;
     out_sizes.reserve(out_rank);
 
-    std::vector<bool> a_contracted(A.rank(), false);
-    std::vector<bool> b_contracted(B.rank(), false);
-    for (auto const& [a, b] : cis)
+    std::vector<bool> a_contracted(a.rank(), false);
+    std::vector<bool> b_contracted(b.rank(), false);
+    for (auto const& [a_idx, b_idx] : cis)
     {
-        a_contracted[a] = true;
-        b_contracted[b] = true;
+        a_contracted[a_idx] = true;
+        b_contracted[b_idx] = true;
     }
-    for (size_type i{}; i != A.rank(); ++i)
+    for (size_type i{}; i != a.rank(); ++i)
     {
-        if (!a_contracted[i]) out_sizes.push_back(A.size(i));
+        if (!a_contracted[i]) out_sizes.push_back(a.size(i));
     }
-    for (size_type i{}; i != B.rank(); ++i)
+    for (size_type i{}; i != b.rank(); ++i)
     {
-        if (!b_contracted[i]) out_sizes.push_back(B.size(i));
+        if (!b_contracted[i]) out_sizes.push_back(b.size(i));
     }
-    tensor_t C(out_sizes);
+    tensor_c_t c(out_sizes);
 
     std::vector<size_type> a_free_axes;
     std::vector<size_type> b_free_axes;
-    a_free_axes.reserve(A.rank() - cis.size());
-    b_free_axes.reserve(B.rank() - cis.size());
-    for (size_type i{}; i != A.rank(); ++i)
+    a_free_axes.reserve(a.rank() - order);
+    b_free_axes.reserve(b.rank() - order);
+    for (size_type i{}; i != a.rank(); ++i)
     {
         if (!a_contracted[i]) a_free_axes.push_back(i);
     }
-    for (size_type i{}; i != B.rank(); ++i)
+    for (size_type i{}; i != b.rank(); ++i)
     {
         if (!b_contracted[i]) b_free_axes.push_back(i);
     }
 
     std::vector<size_type> contract_sizes;
-    contract_sizes.reserve(cis.size());
+    contract_sizes.reserve(order);
     for (auto const& [a_axis, _] : cis)
-        contract_sizes.push_back(A.size(a_axis));
+        contract_sizes.push_back(a.size(a_axis));
 
-    std::vector<size_type> out_idx(C.rank(), 0);
-    std::vector<size_type> a_idx(A.rank(), 0);
-    std::vector<size_type> b_idx(B.rank(), 0);
-    std::vector<size_type> contract_idx(cis.size(), 0);
+    std::vector<size_type> out_idx(c.rank(), 0);
+    std::vector<size_type> a_idx(a.rank(), 0);
+    std::vector<size_type> b_idx(b.rank(), 0);
+    std::vector<size_type> contract_idx(order, 0);
 
     do
     {
@@ -97,21 +104,23 @@ auto tensor_contraction(
         for (auto b_axis : b_free_axes)
             b_idx[b_axis] = out_idx[k++];
 
-        T sum{};
+        value_type sum{};
         std::ranges::fill(contract_idx, size_type{});
         do
         {
-            for (size_type i = 0; i != cis.size(); ++i)
+            for (size_type i = 0; i != order; ++i)
             {
                 auto const& [a_axis, b_axis] = cis[i];
                 a_idx[a_axis]                = contract_idx[i];
                 b_idx[b_axis]                = contract_idx[i];
             }
-            sum += A[a_idx] * B[b_idx];
-        } while (increment_index<index_t>(contract_idx, contract_sizes));
-        C[out_idx] = sum;
-    } while (increment_index<index_t>(out_idx, out_sizes));
-    return C;
+            sum += a[a_idx] * b[b_idx];
+        } while (increment_index<size_type>(contract_idx, contract_sizes));
+        c[out_idx] = sum;
+    } while (increment_index<size_type>(out_idx, out_sizes));
+    return c;
 }
 
-} // namespace v1::tensor
+} // namespace v1
+
+#endif // INCLUDED_TENSOR_OPERATIONS_V1

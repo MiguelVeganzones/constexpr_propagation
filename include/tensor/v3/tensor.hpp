@@ -1,22 +1,16 @@
-#ifndef INCLUDED_STATIC_TENSOR
-#define INCLUDED_STATIC_TENSOR
+#ifndef INCLUDED_STATIC_TENSOR_V3
+#define INCLUDED_STATIC_TENSOR_V3
 
 #include "common/container_concepts.hpp"
 #include "utility/utility_concepts.hpp"
-#include <algorithm>
-#include <array>
 #include <cassert>
-#include <cmath>
-#include <iomanip>
-#include <optional>
 #include <ranges>
-#include <string_view>
 #include <type_traits>
 
 namespace v3
 {
 
-template <typename T, containers::concepts::StaticLayout Layout>
+template <utility::concepts::Arithmetic T, containers::concepts::StaticLayout Layout>
 struct tensor
 {
     using value_type      = std::remove_cv_t<T>;
@@ -32,6 +26,9 @@ struct tensor
 
     static_assert(std::is_trivially_copyable_v<T>);
     static_assert(std::is_standard_layout_v<T>);
+
+    // template <typename U>
+    // using rebind_t = tensor<U, Layout>;
 
     [[nodiscard]]
     static constexpr auto flat_size() noexcept -> size_type
@@ -217,16 +214,6 @@ struct tensor
     value_type buffer_[flat_size()];
 };
 
-template <typename T, containers::concepts::StaticLayout Layout>
-auto operator<<(std::ostream& os, tensor<T, Layout> const& t) noexcept -> std::ostream&
-{
-    for (auto const& e : t.buffer())
-    {
-        os << e << ", ";
-    }
-    return os;
-}
-
 } // namespace v3
 
-#endif // INCLUDED_STATIC_TENSOR
+#endif // INCLUDED_STATIC_TENSOR_V3

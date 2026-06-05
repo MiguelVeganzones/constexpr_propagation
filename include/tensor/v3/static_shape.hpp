@@ -1,5 +1,5 @@
-#ifndef INCLUDED_STATIC_SHAPE
-#define INCLUDED_STATIC_SHAPE
+#ifndef INCLUDED_STATIC_SHAPE_V3
+#define INCLUDED_STATIC_SHAPE_V3
 
 #include "common/container_concepts.hpp"
 #include <algorithm>
@@ -69,4 +69,4 @@ public:
 
 } // namespace v3::tensor
 
-#endif // INCLUDED_STATIC_SHAPE
+#endif // INCLUDED_STATIC_SHAPE_3
