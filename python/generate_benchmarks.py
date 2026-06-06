@@ -13,14 +13,16 @@ BACKEND_INCLUDES = {
 #include "tensor/v1/tensor.hpp"
 #include "tensor/v1/tensor_operations.hpp"
 #include "tensor/v1/utils.hpp"
-#include <ranges>
+#include <benchmark/benchmark.h>
+#include <numeric>
 """,
 
     "v2": """
 #include "tensor/v2/tensor.hpp"
 #include "tensor/v2/tensor_operations.hpp"
 #include "tensor/v2/utils.hpp"
-#include <ranges>
+#include <benchmark/benchmark.h>
+#include <numeric>
 """,
 
     "v3": """
@@ -28,21 +30,25 @@ BACKEND_INCLUDES = {
 #include "tensor/v3/static_shape.hpp"
 #include "tensor/v3/tensor.hpp"
 #include "tensor/v3/tensor_operations.hpp"
-#include <ranges>
+#include "tensor/v3/utils.hpp"
+#include <benchmark/benchmark.h>
+#include <numeric>
 """
 }
 
 
-TEST_TEMPLATE = """
-TEST({backend}, {name})
+BENCHMARK_TEMPLATE = """
+static void BM_tc_{name}_{container}_{backend}(benchmark::State& state)
 {{
+    using F = float;
+
     constexpr std::array a_data{{{a_data}}};
     constexpr std::array b_data{{{b_data}}};
-    constexpr std::array e_data{{{e_data}}};
 
     constexpr std::array a_shape{{{a_shape}}};
     constexpr std::array b_shape{{{b_shape}}};
     constexpr std::array cis_data{{{cis}}};
+
     [[maybe_unused]] constexpr auto a_rank = a_shape.size();
     [[maybe_unused]] constexpr auto b_rank = b_shape.size();
     [[maybe_unused]] constexpr auto order = cis_data.size();
@@ -54,9 +60,10 @@ TEST({backend}, {name})
     std::ranges::copy(a_data, a.buffer().begin());
     std::ranges::copy(b_data, b.buffer().begin());
 
-    auto c = {contraction};
-
-    compare(c.buffer(), e_data);
+    for (auto _ : state)
+    {{
+        benchmark::DoNotOptimize({contraction});
+    }}
 }}
 """
 
@@ -64,8 +71,8 @@ TEST({backend}, {name})
 BACKEND_SNIPPETS = {
     "v1": {
         "type_defs": """
-    using a_t = v1::tensor<float>;
-    using b_t = v1::tensor<float>;
+    using a_t = v1::tensor<F>;
+    using b_t = v1::tensor<F>;
 """,
         "construct": """
     a_t a(a_shape);
@@ -77,8 +84,8 @@ BACKEND_SNIPPETS = {
 
     "v2": {
         "type_defs": """
-    using a_t = v2::tensor<float, a_rank>;
-    using b_t = v2::tensor<float, b_rank>;
+    using a_t = v2::tensor<F, a_rank>;
+    using b_t = v2::tensor<F, b_rank>;
 """,
         "construct": """
     a_t a(a_shape);
@@ -90,8 +97,8 @@ BACKEND_SNIPPETS = {
 
     "v3": {
         "type_defs": """
-    using a_t = v3::tensor<float, v3::static_layout<v3::static_shape<a_shape>>>;
-    using b_t = v3::tensor<float, v3::static_layout<v3::static_shape<b_shape>>>;
+    using a_t = v3::tensor<F, v3::static_layout<v3::static_shape<a_shape>>>;
+    using b_t = v3::tensor<F, v3::static_layout<v3::static_shape<b_shape>>>;
 """,
         "construct": """
     a_t a{};
@@ -115,7 +122,6 @@ class Case:
     cis: List[Tuple[int, int]]
     a: np.ndarray
     b: np.ndarray
-    expected: np.ndarray
 
 
 # =========================================================
@@ -125,18 +131,12 @@ class Case:
 def generate_cases():
     cases = []
 
-    def tensordot(a, b, cis):
-        axes_a = [i for i, _ in cis]
-        axes_b = [j for _, j in cis]
-        return np.tensordot(a, b, axes=(axes_a, axes_b))
-
     def make_tensor(shape):
         return np.arange(np.prod(shape), dtype=np.float32).reshape(shape)
 
     def add(name, a_shape, b_shape, cis):
         a = make_tensor(a_shape)
         b = make_tensor(b_shape)
-        e = tensordot(a, b, cis)
 
         cases.append(Case(
             name=name,
@@ -144,8 +144,7 @@ def generate_cases():
             b_shape=b_shape,
             cis=cis,
             a=a,
-            b=b,
-            expected=e
+            b=b
         ))
 
     add("case_mm", (2, 3, 4), (4, 3, 2), [(2, 0), (1, 1)])
@@ -163,10 +162,9 @@ def generate_cases():
 # RENDERER
 # =========================================================
 
-def render(case, backend):
+def render(case, container, backend):
     a = ", ".join(f"{x}f" for x in case.a.flatten())
     b = ", ".join(f"{x}f" for x in case.b.flatten())
-    e = ", ".join(f"{x}f" for x in case.expected.flatten())
 
     a_shape = ", ".join(f"{x}uz" for x in case.a_shape)
     b_shape = ", ".join(f"{x}uz" for x in case.b_shape)
@@ -178,12 +176,12 @@ def render(case, backend):
 
     snip = BACKEND_SNIPPETS[backend]
 
-    return TEST_TEMPLATE.format(
+    return BENCHMARK_TEMPLATE.format(
+        container=container.upper(),
         backend=backend.upper(),
         name=case.name,
         a_data=a,
         b_data=b,
-        e_data=e,
         a_shape=a_shape,
         b_shape=b_shape,
         cis=cis,
@@ -197,13 +195,13 @@ def render(case, backend):
 # EMITTER
 # =========================================================
 
-def emit_file(backend, cases):
+def emit_file(container, backend, cases):
     out = [BACKEND_INCLUDES[backend].strip()]
 
     for c in cases:
-        out.append(render(c, backend))
+        out.append(render(c, container, backend))
 
-    Path(f"tests/generated/{backend}.t.cpp").write_text("\n".join(out))
+    Path(f"benchmarks/generated/{backend}_bench.b.cpp").write_text("\n".join(out))
 
 
 # =========================================================
@@ -214,7 +212,7 @@ def main():
     cases = generate_cases()
 
     for backend in BACKEND_INCLUDES.keys():
-        emit_file(backend, cases)
+        emit_file("t", backend, cases)
 
     print(f"Generated {len(cases)} cases for v1/v2/v3")
 

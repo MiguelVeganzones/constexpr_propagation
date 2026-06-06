@@ -42,6 +42,8 @@ BACKEND_INCLUDES = {
 TEST_TEMPLATE = """
 TEST({backend}, {name})
 {{
+    using F = float;
+
     constexpr std::array a_data{{{a_data}}};
     constexpr std::array b_data{{{b_data}}};
     constexpr std::array e_data{{{e_data}}};
@@ -70,8 +72,8 @@ TEST({backend}, {name})
 BACKEND_SNIPPETS = {
     "v1": {
         "type_defs": """
-    using a_t = v1::tensor<float>;
-    using b_t = v1::tensor<float>;
+    using a_t = v1::tensor<F>;
+    using b_t = v1::tensor<F>;
 """,
         "construct": """
     a_t a(a_shape);
@@ -83,8 +85,8 @@ BACKEND_SNIPPETS = {
 
     "v2": {
         "type_defs": """
-    using a_t = v2::tensor<float, a_rank>;
-    using b_t = v2::tensor<float, b_rank>;
+    using a_t = v2::tensor<F, a_rank>;
+    using b_t = v2::tensor<F, b_rank>;
 """,
         "construct": """
     a_t a(a_shape);
@@ -96,8 +98,8 @@ BACKEND_SNIPPETS = {
 
     "v3": {
         "type_defs": """
-    using a_t = v3::tensor<float, v3::static_layout<v3::static_shape<a_shape>>>;
-    using b_t = v3::tensor<float, v3::static_layout<v3::static_shape<b_shape>>>;
+    using a_t = v3::tensor<F, v3::static_layout<v3::static_shape<a_shape>>>;
+    using b_t = v3::tensor<F, v3::static_layout<v3::static_shape<b_shape>>>;
 """,
         "construct": """
     a_t a{};
@@ -209,7 +211,7 @@ def emit_file(backend, cases):
     for c in cases:
         out.append(render(c, backend))
 
-    Path(f"tests/generated/{backend}.t.cpp").write_text("\n".join(out))
+    Path(f"tests/generated/{backend}_test.t.cpp").write_text("\n".join(out))
 
 
 # =========================================================

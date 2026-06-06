@@ -11,7 +11,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(benchmark)
 
 file(GLOB EXAMPLE_SOURCES CONFIGURE_DEPENDS
-    *.b.cpp
+    ./**/*.b.cpp
 )
 
 foreach(src ${EXAMPLE_SOURCES})

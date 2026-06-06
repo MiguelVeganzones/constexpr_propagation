@@ -4,6 +4,7 @@
 #include "tensor/v3/tensor_operations.hpp"
 #include "tensor/v3/utils.hpp"
 #include <benchmark/benchmark.h>
+#include <numeric>
 
 using F = float;
 
@@ -12,14 +13,11 @@ static void BM_tensor_contraction_v3(benchmark::State& state)
     constexpr auto a_sizes = std::array{ 2uz, 2uz, 3uz };
     constexpr auto b_sizes = std::array{ 3uz, 2uz, 2uz };
 
-    using ShapeA = v3::static_shape<a_sizes>;
-    using ShapeB = v3::static_shape<b_sizes>;
+    using a_t = v3::tensor<F, v3::static_layout<v3::static_shape<a_sizes>>>;
+    using b_t = v3::tensor<F, v3::static_layout<v3::static_shape<b_sizes>>>;
 
-    using A = v3::tensor<F, v3::static_layout<ShapeA>>;
-    using B = v3::tensor<F, v3::static_layout<ShapeB>>;
-
-    A a{};
-    B b{};
+    a_t a{};
+    b_t b{};
 
     std::iota(a.buffer().begin(), a.buffer().end(), F{});
     std::iota(b.buffer().begin(), b.buffer().end(), F{});

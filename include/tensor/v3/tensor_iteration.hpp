@@ -2,9 +2,9 @@
 #define INCLUDED_CONTAINER_ITERATION_V3
 
 #include "common/container_concepts.hpp"
-#include "utils.hpp"
 #include "loop_control.hpp"
 #include "tensor.hpp"
+#include "utils.hpp"
 #include <algorithm>
 #include <array>
 #include <concepts>
@@ -20,23 +20,39 @@ namespace detail
 
 template <
     containers::concepts::LoopControl Loop_Control,
+    std::ranges::sized_range auto     A_Strides,
+    std::ranges::sized_range auto     B_Strides,
     std::integral auto                I,
     std::integral                     Index_Type>
 [[gnu::always_inline, gnu::flatten]]
 constexpr auto shaped_for_impl(
     std::array<Index_Type, Loop_Control::rank()>& idxs,
+    Index_Type                                    a_base,
+    Index_Type                                    b_base,
     auto&&                                        fn,
     auto&&... args
 ) noexcept -> void
 {
-    using loop_t = Loop_Control;
-    using rank_t = typename loop_t::rank_t;
+    using loop_t  = Loop_Control;
+    using rank_t  = typename loop_t::rank_t;
+    using index_t = typename loop_t::index_t;
+
+    static_assert(A_Strides.size() + B_Strides.size() == loop_t::rank());
 
     if constexpr (rank_t{ I } == loop_t::rank())
     {
-        static_assert(std::invocable<decltype(fn), decltype(args)..., decltype(idxs)>);
+        static_assert(std::invocable<
+                      decltype(fn),
+                      decltype(args)...,
+                      decltype(idxs),
+                      index_t,
+                      index_t>);
         std::invoke(
-            std::forward<decltype(fn)>(fn), std::forward<decltype(args)>(args)..., idxs
+            std::forward<decltype(fn)>(fn),
+            std::forward<decltype(args)>(args)...,
+            idxs,
+            a_base,
+            b_base
         );
     }
     else
@@ -44,11 +60,21 @@ constexpr auto shaped_for_impl(
         for (idxs[I] = loop_t::start(I); idxs[I] != loop_t::end(I);
              idxs[I] += loop_t::stride(I))
         {
-            shaped_for_impl<loop_t, I + rank_t{ 1 }, Index_Type>(
+            shaped_for_impl<loop_t, A_Strides, B_Strides, I + rank_t{ 1 }, Index_Type>(
                 idxs,
+                a_base,
+                b_base,
                 std::forward<decltype(fn)>(fn),
                 std::forward<decltype(args)>(args)...
             );
+            if constexpr (I < A_Strides.size())
+            {
+                a_base += A_Strides[I];
+            }
+            else
+            {
+                b_base += B_Strides[I - A_Strides.size()];
+            }
         }
     }
 }
@@ -61,6 +87,7 @@ template <
     std::integral                     Index_Type>
     requires(std::ranges::size(A_Strides) == Loop_Control::rank()) &&
             (std::ranges::size(B_Strides) == Loop_Control::rank())
+[[gnu::always_inline, gnu::flatten]]
 constexpr auto shaped_for_inner_impl(
     Index_Type a_index,
     Index_Type b_index,
@@ -100,15 +127,23 @@ constexpr auto shaped_for_inner_impl(
 
 } // namespace detail
 
-template <containers::concepts::LoopControl Loop_Control>
+template <
+    containers::concepts::LoopControl Loop_Control,
+    std::ranges::sized_range auto     A_Strides,
+    std::ranges::sized_range auto     B_Strides>
 [[gnu::always_inline, gnu::flatten]]
 constexpr auto shaped_for(auto&& fn, auto&&... args) noexcept -> void
 {
-    using loop_t = Loop_Control;
-    using rank_t = typename loop_t::rank_t;
+    using loop_t  = Loop_Control;
+    using rank_t  = typename loop_t::rank_t;
+    using index_t = typename loop_t::index_t;
     std::array<typename loop_t::index_t, loop_t::rank()> idxs{};
-    detail::shaped_for_impl<Loop_Control, rank_t{}>(
-        idxs, std::forward<decltype(fn)>(fn), std::forward<decltype(args)>(args)...
+    detail::shaped_for_impl<Loop_Control, A_Strides, B_Strides, rank_t{}>(
+        idxs,
+        index_t{},
+        index_t{},
+        std::forward<decltype(fn)>(fn),
+        std::forward<decltype(args)>(args)...
     );
 }
 
@@ -118,14 +153,20 @@ template <
     std::ranges::sized_range auto     B_Strides>
     requires(std::ranges::size(A_Strides) == Loop_Control::rank()) &&
             (std::ranges::size(B_Strides) == Loop_Control::rank())
-constexpr auto shaped_for_inner(auto&& fn, auto&&... args) noexcept -> void
+[[gnu::always_inline, gnu::flatten]]
+constexpr auto shaped_for_inner(
+    auto const a_base,
+    auto const b_base,
+    auto&&     fn,
+    auto&&... args
+) noexcept -> void
 {
     using loop_t  = Loop_Control;
     using rank_t  = typename loop_t::rank_t;
     using index_t = typename loop_t::index_t;
     detail::shaped_for_inner_impl<loop_t, A_Strides, B_Strides, rank_t{}>(
-        index_t{},
-        index_t{},
+        index_t{ a_base },
+        index_t{ b_base },
         std::forward<decltype(fn)>(fn),
         std::forward<decltype(args)>(args)...
     );

@@ -279,6 +279,28 @@ struct tensor_contraction_result
         return ret;
     }();
 
+    static constexpr auto s_a_free_strides = []
+    {
+        using ret_t = std::array<size_type, a_t::rank() - s_order>;
+        ret_t ret{};
+        for (size_type i{}; i != ret.size(); ++i)
+        {
+            ret[i] = a_t::stride(s_a_free_axes[i]);
+        }
+        return ret;
+    }();
+
+    static constexpr auto s_b_free_strides = []
+    {
+        using ret_t = std::array<size_type, b_t::rank() - s_order>;
+        ret_t ret{};
+        for (size_type i{}; i != ret.size(); ++i)
+        {
+            ret[i] = b_t::stride(s_b_free_axes[i]);
+        }
+        return ret;
+    }();
+
     using outter_loop_t = loop_control<static_shape<s_out_sizes>, 0, -1, 1>;
     using inner_loop_t  = loop_control<static_shape<s_contract_sizes>, 0, -1, 1>;
 
