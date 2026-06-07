@@ -1,11 +1,12 @@
 include(FetchContent)
 
-set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
 set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+set(BENCHMARK_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
     benchmark
-    URL https://github.com/google/benchmark/archive/refs/tags/v1.8.3.zip
+    URL https://github.com/google/benchmark/archive/refs/tags/v1.9.5.zip
 )
 
 FetchContent_MakeAvailable(benchmark)

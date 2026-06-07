@@ -4,7 +4,7 @@
 
 set(COMMON_FLAGS
     -fverbose-asm
-    -freflection
+    # -freflection
     -fno-exceptions
 )
 

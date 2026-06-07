@@ -44,6 +44,14 @@
             }
         },
         {
+            "name": "clang-relwdebinfo",
+            "inherits": "clang-base",
+            "binaryDir": "build/clang-relwdebinfo",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            }
+        },
+        {
             "name": "clang-release",
             "inherits": "clang-base",
             "binaryDir": "build/clang-release",
@@ -79,6 +87,11 @@
             "name": "clang-debug",
             "inherits": "build-base",
             "configurePreset": "clang-debug"
+        },
+        {
+            "name": "clang-relwdebinfo",
+            "inherits": "build-base",
+            "configurePreset": "clang-relwdebinfo"
         },
         {
             "name": "clang-release",

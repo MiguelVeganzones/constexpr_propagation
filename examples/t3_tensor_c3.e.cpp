@@ -4,19 +4,13 @@
 #include "tensor/v3/tensor.hpp"
 #include "tensor/v3/tensor_operations.hpp"
 #include "tensor/v3/utils.hpp"
-#include "utility/parser.hpp"
 #include <iostream>
 #include <print>
 #include <ranges>
 #include <utility>
 #include <vector>
 
-struct cmd_opts
-{
-    using size_type = std::size_t;
-};
-
-auto main(int argc, char* argv[]) -> int
+auto main() -> int
 {
     using namespace v3;
     using namespace containers::print;
@@ -33,7 +27,6 @@ auto main(int argc, char* argv[]) -> int
     using size_type        = std::
         common_type_t<typename tensor_a_t::size_type, typename tensor_b_t::size_type>;
 
-    auto const _ = utility::cmd::parse_options<cmd_opts>({ argv, argv + argc });
     std::println("cx.sizes is {}", a_sizes);
     std::println("cx.sizes is {}", b_sizes);
 

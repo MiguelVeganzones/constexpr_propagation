@@ -4,7 +4,7 @@
 
 set(COMMON_FLAGS
     -fverbose-asm
-    -freflection
+    # -freflection
     -fno-exceptions
 )
 
@@ -56,7 +56,6 @@ set(DEBUG_INFO
 )
 
 set(DEBUG_FLAGS
-    -freflection
 	-ffinite-math-only
 	-fmax-errors=15
 	-fno-eliminate-unused-debug-symbols

@@ -9,7 +9,7 @@ from typing import Tuple, List
 # =========================================================
 
 TENSOR_IMPLS = {
-    "v1": {
+    "t1": {
         "includes": """
 #include "tensor/v1/tensor.hpp"
 #include "tensor/v1/utils.hpp"
@@ -26,7 +26,7 @@ const auto cis =
 """
     },
 
-    "v2": {
+    "t2": {
         "includes": """
 #include "tensor/v2/tensor.hpp"
 #include "tensor/v2/utils.hpp"
@@ -43,7 +43,7 @@ constexpr auto cis =
 """
     },
 
-    "v3": {
+    "t3": {
         "includes": """
 #include "tensor/v3/static_layout.hpp"
 #include "tensor/v3/static_shape.hpp"
@@ -71,17 +71,17 @@ constexpr auto cis =
 }
 
 CONTRACTION_IMPLS = {
-    "v1": {
+    "c1": {
         "include": '#include "tensor/v1/tensor_operations.hpp"',
         "call": "v1::tensor_contraction(a,b,cis)"
     },
 
-    "v2": {
+    "c2": {
         "include": '#include "tensor/v2/tensor_operations.hpp"',
         "call": "v2::tensor_contraction(a,b,cis)"
     },
 
-    "v3": {
+    "c3": {
         "include": '#include "tensor/v3/tensor_operations.hpp"',
         "call": "v3::tensor_contraction<cis>(a,b)"
     }
@@ -119,14 +119,14 @@ BENCHMARK(BM_tc_{name}_{container}_{backend});
 """
 
 COMBINATIONS = [
-    ("v1", "v1"),
+    ("t1", "c1"),
 
-    ("v2", "v1"),
-    ("v2", "v2"),
+    ("t2", "c1"),
+    ("t2", "c2"),
 
-    ("v3", "v1"),
-    ("v3", "v2"),
-    ("v3", "v3"),
+    ("t3", "c1"),
+    ("t3", "c2"),
+    ("t3", "c3"),
 ]
 
 # =========================================================
@@ -189,7 +189,7 @@ def generate_cases():
     add("3_3_2", (3, 3, 3), (3, 3, 3), [(2, 0), (1, 1)])
     add("4_4_3", (4, 4, 4, 4), (4, 4, 4, 4), [(3, 0), (1, 2), (2, 1)])
     add("4_4_2", (4, 4, 4, 4), (4, 4, 4, 4), [(3, 0), (1, 3)])
-    add("5_5_4", (5, 5, 5, 5, 5), (5, 5, 5, 5, 5), [(3, 0), (1, 2), (2, 1), (4, 4)])
+    add("5_5_4", (5, 4, 4, 4, 5), (4, 4, 4, 5, 5), [(3, 0), (1, 2), (2, 1), (4, 4)])
 
     return cases
 
