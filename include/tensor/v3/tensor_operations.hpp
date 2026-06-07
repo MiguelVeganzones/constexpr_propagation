@@ -42,7 +42,7 @@ constexpr auto tensor_contraction(A const& a, B const& b) noexcept -> utils::typ
                 result_t::s_b_contract_strides>(
                 a_base,
                 b_base,
-                [&a, &b] //
+                [&a, &b]
                 (auto& e, auto const a_offset, auto const b_offset)
                 { //
                     e += a.buffer()[a_offset] * b.buffer()[b_offset];

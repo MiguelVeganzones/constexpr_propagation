@@ -1,5 +1,5 @@
 import numpy as np
-from pathlib import Path
+import pathlib
 from dataclasses import dataclass
 from typing import Tuple, List
 
@@ -80,7 +80,7 @@ BACKEND_SNIPPETS = {
     b_t b(b_shape);
     const auto cis = v1::utils::types::contraction_index_set<std::size_t>(cis_data);
 """,
-        "contraction": "tensor_contraction(a,b,cis)"
+        "contraction": "v1::tensor_contraction(a,b,cis)"
     },
 
     "v2": {
@@ -93,7 +93,7 @@ BACKEND_SNIPPETS = {
     b_t b(b_shape);
     constexpr auto cis = v2::utils::types::contraction_index_set<std::size_t, order>(cis_data);
 """,
-        "contraction": "tensor_contraction(a,b,cis)"
+        "contraction": "v2::tensor_contraction(a,b,cis)"
     },
 
     "v3": {
@@ -106,7 +106,7 @@ BACKEND_SNIPPETS = {
     b_t b{};
     constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
 """,
-        "contraction": "tensor_contraction<cis>(a,b)"
+        "contraction": "v3::tensor_contraction<cis>(a,b)"
     }
 }
 
@@ -156,13 +156,16 @@ def generate_cases():
             expected=e
         ))
 
-    add("case_mm", (2, 3, 4), (4, 3, 2), [(2, 0), (1, 1)])
-    add("case_rank3", (2, 2, 3), (3, 2, 2), [(2, 0), (1, 1)])
-    add("case_rank4a", (4, 2, 3, 6), (6, 3, 2, 2), [(3, 0), (1, 2), (2, 1)])
-    add("case_rank4b", (2, 4, 3, 5), (5, 3, 2, 4), [(3, 0), (1, 3)])
-    add("case_rank5", (2, 2, 3, 6, 2), (6, 3, 2, 2, 2), [(3, 0), (1, 2), (2, 1), (4, 4)])
-    add("case_rank6", (2, 2, 3, 6, 3, 2), (6, 3, 2, 2, 2, 3), [(3, 0), (1, 2), (2, 1), (4, 5), (5, 4)])
-    add("case_identity_like", (3, 3), (3, 3), [(1, 0)])
+    add("case_2_2_1", (3, 3), (3, 3), [(1, 0)])
+    add("case_3_2_1", (2, 3, 4), (4, 3), [(2, 0)])
+    add("case_3_2_2", (2, 3, 4), (4, 3), [(2, 0), (1, 1)])
+    add("case_3_3_2", (2, 2, 3), (3, 2, 2), [(2, 0), (1, 1)])
+    add("case_4_3_2", (4, 2, 3, 6), (6, 3, 2), [(3, 0), (1, 2)])
+    add("case_4_4_3", (4, 2, 3, 6), (6, 3, 2, 2), [(3, 0), (1, 2), (2, 1)])
+    add("case_4_4_2", (2, 4, 3, 5), (5, 3, 2, 4), [(3, 0), (1, 3)])
+    add("case_5_5_4", (2, 2, 3, 6, 2), (6, 3, 2, 2, 2), [(3, 0), (1, 2), (2, 1), (4, 4)])
+    add("case_6_6_5", (2, 2, 3, 6, 3, 2), (6, 3, 2, 2, 2, 3), [(3, 0), (1, 2), (2, 1), (4, 5), (5, 4)])
+    add("case_6_3_3", (2, 4, 4, 6, 3, 1), (6, 3, 2), [(3, 0), (4, 1), (0, 2)])
 
     return cases
 
@@ -211,7 +214,7 @@ def emit_file(backend, cases):
     for c in cases:
         out.append(render(c, backend))
 
-    Path(f"tests/generated/{backend}_test.t.cpp").write_text("\n".join(out))
+    pathlib.Path(f"tests/generated/{backend}_test.t.cpp").write_text("\n".join(out))
 
 
 # =========================================================
@@ -221,10 +224,11 @@ def emit_file(backend, cases):
 def main():
     cases = generate_cases()
 
+    p = pathlib.Path("tests/generated/").mkdir(parents=True, exist_ok=True)
     for backend in BACKEND_INCLUDES.keys():
         emit_file(backend, cases)
 
-    print(f"Generated {len(cases)} cases for v1/v2/v3")
+    print(f"Generated {len(cases)} cases for [v1/v2/v3]x[v1/v2/v3]")
 
 
 if __name__ == "__main__":

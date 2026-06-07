@@ -111,8 +111,9 @@ auto tensor_contraction(
                 contract_sizes,
                 a_contract_strides,
                 b_contract_strides,
-                [&a, &b, &a_base, &b_base] //
-                (auto& e, auto const a_offset, auto const b_offset)
+                [&a, &b, &a_base, &b_base](
+                    auto& e, auto const a_offset, auto const b_offset
+                )
                 {
                     //
                     e += a.buffer()[a_base + a_offset] * b.buffer()[b_base + b_offset];
