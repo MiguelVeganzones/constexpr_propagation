@@ -88,8 +88,8 @@ CONTRACTION_IMPLS = {
     }
 }
 
-BENCHMARK_TEMPLATE = """
-static void BM_tc_{name}_{backend}(benchmark::State& state)
+EXAMPLE_TEMPLATE = """
+static auto E_tc_{name}_{backend}() -> void
 {{
     using F = float;
 
@@ -111,13 +111,9 @@ static void BM_tc_{name}_{backend}(benchmark::State& state)
     std::ranges::copy(a_data, a.buffer().begin());
     std::ranges::copy(b_data, b.buffer().begin());
 
-    for (auto _ : state)
-    {{
-        {contraction};
-        benchmark::ClobberMemory();
-    }}
+    {contraction};
+    asm volatile ("" ::: "memory");
 }}
-BENCHMARK(BM_tc_{name}_{backend});
 """
 
 COMBINATIONS = [
@@ -154,7 +150,6 @@ def build_include_block(tensor_impl, contraction_impl):
     return f"""
 {CONTRACTION_IMPLS[contraction_impl]["include"]}
 {TENSOR_IMPLS[tensor_impl]["includes"]}
-#include <benchmark/benchmark.h>
 #include <numeric>
 """
 
@@ -209,7 +204,7 @@ def render(case, backend_name, snippet):
         for i, j in case.cis
     )
 
-    return BENCHMARK_TEMPLATE.format(
+    return EXAMPLE_TEMPLATE.format(
         backend=backend_name.upper(),
         name=case.name,
         a_data=a,
@@ -233,8 +228,8 @@ def emit_file(
     snippet,
     cases,
 ):
-    out = [include_block.strip()]
     for case in cases:
+        out = [include_block.strip()]
         out.append(
             render(
                 case,
@@ -242,10 +237,9 @@ def emit_file(
                 snippet,
             )
         )
-    out.append("BENCHMARK_MAIN();")
-    pathlib.Path(
-        f"benchmarks/generated/{backend_name}_bench.b.cpp"
-    ).write_text("\n".join(out))
+        pathlib.Path(
+            f"examples/generated/{backend_name}_{case.name}.e.cpp"
+        ).write_text("\n".join(out))
 
 
 # =========================================================
@@ -256,7 +250,7 @@ def main():
     cases = generate_cases()
 
     pathlib.Path(
-        "benchmarks/generated"
+        "examples/generated"
     ).mkdir(parents=True, exist_ok=True)
 
     for tensor_impl, contraction_impl in COMBINATIONS:

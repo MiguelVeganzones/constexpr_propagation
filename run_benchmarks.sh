@@ -14,8 +14,9 @@ run_bench () {
     echo "Running $name..."
 
     taskset -c 0 "$exe" \
-        --benchmark_repetitions=5 \
+        --benchmark_repetitions=10 \
         --benchmark_format=csv \
+        --benchmark_report_aggregates_only=false \
         > "${OUT_DIR}/${name}_results.csv"
 }
 
@@ -30,5 +31,8 @@ run_bench "${BIN}/t2_c2_bench" "t2_c2"
 run_bench "${BIN}/t3_c1_bench" "t3_c1"
 run_bench "${BIN}/t3_c2_bench" "t3_c2"
 run_bench "${BIN}/t3_c3_bench" "t3_c3"
+
+# numpy
+venv/bin/python python/run_reference_benchmarks.py
 
 echo "All benchmarks completed."
