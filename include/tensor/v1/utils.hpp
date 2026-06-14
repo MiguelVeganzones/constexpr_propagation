@@ -1,12 +1,59 @@
 #ifndef INCLUDED_CONTAINER_UTILS_V1
 #define INCLUDED_CONTAINER_UTILS_V1
 
+#include "common/container_concepts.hpp"
+#include "tensor/v1/tensor.hpp"
 #include <ranges>
 #include <utility>
 #include <vector>
 
 namespace v1::utils::types
 {
+
+auto allocate_output_uninitialized(
+    containers::concepts::Container auto const&           a,
+    containers::concepts::Container auto const&           b,
+    containers::concepts::ContractionIndexSet auto const& cis
+) -> auto
+{
+    using a_t = std::remove_cvref_t<decltype(a)>;
+    using b_t = std::remove_cvref_t<decltype(b)>;
+    using value_type =
+        std::common_type_t<typename a_t::value_type, typename b_t::value_type>;
+    using size_type =
+        std::common_type_t<typename a_t::size_type, typename b_t::size_type>;
+    using c_t = v1::tensor<value_type>;
+
+#ifndef NDEBUG
+    for (auto const& [a_axis, b_axis] : cis)
+    {
+        assert(a.size(a_axis) == b.size(b_axis));
+    }
+#endif
+
+    const auto      order    = cis.order();
+    const size_type out_rank = a.rank() + b.rank() - 2 * order;
+    assert(out_rank > 0);
+    std::vector<size_type> out_sizes;
+    out_sizes.reserve(out_rank);
+
+    std::vector<bool> a_contracted(a.rank(), false);
+    std::vector<bool> b_contracted(b.rank(), false);
+    for (auto const& [a_idx, b_idx] : cis)
+    {
+        a_contracted[a_idx] = true;
+        b_contracted[b_idx] = true;
+    }
+    for (size_type i{}; i != a.rank(); ++i)
+    {
+        if (!a_contracted[i]) out_sizes.push_back(a.size(i));
+    }
+    for (size_type i{}; i != b.rank(); ++i)
+    {
+        if (!b_contracted[i]) out_sizes.push_back(b.size(i));
+    }
+    return c_t(out_sizes);
+}
 
 template <std::integral Index_Type>
 struct contraction_index_set
@@ -90,6 +137,6 @@ public:
     container_t indices_;
 };
 
-} // namespace v2::utils::types
+} // namespace v1::utils::types
 
 #endif // INCLUDED_CONTAINER_UTILS_V1

@@ -4,6 +4,7 @@
 #include "common/container_concepts.hpp"
 #include "utility/utility_concepts.hpp"
 #include <cassert>
+#include <memory>
 #include <ranges>
 #include <type_traits>
 
@@ -24,11 +25,76 @@ struct tensor
     using const_reference = value_type const&;
     using reference       = value_type&;
 
-    static_assert(std::is_trivially_copyable_v<T>);
-    static_assert(std::is_standard_layout_v<T>);
+    static constexpr auto s_stack_threshold = 1uz << 17uz;
+
+    static_assert(std::is_trivially_copyable_v<value_type>);
+    static_assert(std::is_standard_layout_v<value_type>);
 
     // template <typename U>
     // using rebind_t = tensor<U, Layout>;
+
+    template <size_type Flat_Size>
+    struct stack_storage
+    {
+        value_type data_[Flat_Size];
+    };
+
+    template <size_type Flat_Size>
+    struct heap_storage
+    {
+        heap_storage()
+            : data_(std::make_unique<value_type[]>(Flat_Size))
+        {
+        }
+
+        std::unique_ptr<value_type[]> data_;
+    };
+
+    template <size_type Flat_Size>
+    inline static constexpr bool use_stack_v =
+        Flat_Size * sizeof(value_type) < (s_stack_threshold);
+
+    template <size_type Flat_Size>
+    using storage_t = std::conditional_t<
+        use_stack_v<Flat_Size>,
+        stack_storage<Flat_Size>,
+        heap_storage<Flat_Size>>;
+
+    template <size_type Flat_Size>
+    struct buffer_t : storage_t<Flat_Size>
+    {
+        using base_t = storage_t<Flat_Size>;
+
+        auto get() noexcept -> iterator
+        {
+            if constexpr (use_stack_v<Flat_Size>)
+                return this->data_;
+            else
+                return this->data_.get();
+        }
+
+        auto get() const noexcept -> const_iterator
+        {
+            if constexpr (use_stack_v<Flat_Size>)
+                return this->data_;
+            else
+                return this->data_.get();
+        }
+
+        [[nodiscard]]
+        auto span() noexcept -> std::span<value_type, Flat_Size>
+        {
+            return std::span<value_type, Flat_Size>(std::span<value_type>{ get(),
+                                                                           Flat_Size });
+        }
+
+        [[nodiscard]]
+        auto span() const noexcept -> std::span<value_type const, Flat_Size>
+        {
+            return std::span<value_type const, Flat_Size>(std::span<value_type const>{
+                get(), Flat_Size });
+        }
+    };
 
     [[nodiscard]]
     static constexpr auto flat_size() noexcept -> size_type
@@ -103,7 +169,7 @@ struct tensor
     // requires(std::ranges::size(idxs) == rank() &&
     // std::is_same_v<std::ranges::range_value_t<decltype(idxs)>, index_t>)
     {
-        return buffer_[linear_index(idxs)];
+        return buffer_.get()[linear_index(idxs)];
     }
 
     [[nodiscard]]
@@ -113,33 +179,12 @@ struct tensor
         return const_cast<reference>(std::as_const(*this).operator[](idxs));
     }
 
-    [[nodiscard]]
-    constexpr auto underlying_at(const index_t i) noexcept -> reference
-    {
-        return const_cast<reference>(std::as_const(*this).underlying_at(i));
-    }
-
-    [[nodiscard]]
-    constexpr auto underlying_at(const index_t i) const noexcept -> const_reference
-    {
-        static_assert(
-            sizeof(tensor) == sizeof(value_type) * elements(),
-            "Container must be compact to bypass the subscript operator!"
-        );
-        assert(i < elements());
-        if constexpr (std::is_signed_v<index_t>)
-        {
-            assert(i >= index_t{});
-        }
-        return buffer_[i];
-    }
-
     template <typename... I>
         requires(sizeof...(I) == rank()) && (std::integral<std::remove_cvref_t<I>> && ...)
     [[nodiscard]]
     constexpr auto operator[](I const&... idxs) const noexcept -> const_reference
     {
-        return buffer_[linear_index(static_cast<index_t>(idxs)...)];
+        return buffer_.get()[linear_index(static_cast<index_t>(idxs)...)];
     }
 
     template <typename... I>
@@ -153,7 +198,7 @@ struct tensor
     [[nodiscard]]
     constexpr auto operator[](index_t const linear_idx) const noexcept -> const_reference
     {
-        return buffer_[linear_idx];
+        return buffer_.get()[linear_idx];
     }
 
     [[nodiscard]]
@@ -165,53 +210,52 @@ struct tensor
     [[nodiscard]]
     constexpr auto cbegin() const noexcept -> const_iterator
     {
-        return std::cbegin(buffer_);
+        return buffer_.get();
     }
 
     [[nodiscard]]
     constexpr auto cend() const noexcept -> const_iterator
     {
-        return std::cend(buffer_);
+        return buffer_.get() + flat_size();
     }
 
     [[nodiscard]]
     constexpr auto begin() const noexcept -> const_iterator
     {
-        return std::begin(buffer_);
+        return buffer_.get();
     }
 
     [[nodiscard]]
     constexpr auto end() const noexcept -> const_iterator
     {
-        return std::end(buffer_);
+        return buffer_.get() + flat_size();
     }
 
     [[nodiscard]]
     constexpr auto begin() noexcept -> iterator
     {
-        return std::begin(buffer_);
+        return buffer_.get();
     }
 
     [[nodiscard]]
     constexpr auto end() noexcept -> iterator
     {
-        return std::end(buffer_);
+        return buffer_.get() + flat_size();
     }
 
     [[nodiscard]]
     constexpr auto buffer() const noexcept -> std::span<value_type const, flat_size()>
     {
-        return buffer_;
+        return buffer_.span();
     }
 
     [[nodiscard]]
     constexpr auto buffer() noexcept -> std::span<value_type, flat_size()>
     {
-        return buffer_;
+        return buffer_.span();
     }
 
-    // TODO: Alignment?
-    value_type buffer_[flat_size()];
+    buffer_t<flat_size()> buffer_{};
 };
 
 } // namespace v3

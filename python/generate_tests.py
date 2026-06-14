@@ -33,6 +33,7 @@ BACKEND_INCLUDES = {
 #include "tensor/v3/static_shape.hpp"
 #include "tensor/v3/tensor.hpp"
 #include "tensor/v3/tensor_operations.hpp"
+#include "tensor/v3/utils.hpp"
 #include <ranges>
 #include "../common/compare.hpp"
 """
@@ -62,7 +63,7 @@ TEST({backend}, {name})
     std::ranges::copy(a_data, a.buffer().begin());
     std::ranges::copy(b_data, b.buffer().begin());
 
-    auto c = {contraction};
+    {contraction};
 
     compare(c.buffer(), e_data);
 }}
@@ -79,8 +80,9 @@ BACKEND_SNIPPETS = {
     a_t a(a_shape);
     b_t b(b_shape);
     const auto cis = v1::utils::types::contraction_index_set<std::size_t>(cis_data);
+    auto c = v1::utils::types::allocate_output_uninitialized(a, b, cis);
 """,
-        "contraction": "v1::tensor_contraction(a,b,cis)"
+        "contraction": "v1::tensor_contraction(a, b, c, cis)"
     },
 
     "v2": {
@@ -92,8 +94,9 @@ BACKEND_SNIPPETS = {
     a_t a(a_shape);
     b_t b(b_shape);
     constexpr auto cis = v2::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+    auto c = v2::utils::types::allocate_output_uninitialized(a, b, cis);
 """,
-        "contraction": "v2::tensor_contraction(a,b,cis)"
+        "contraction": "v2::tensor_contraction(a, b, c, cis)"
     },
 
     "v3": {
@@ -105,8 +108,9 @@ BACKEND_SNIPPETS = {
     a_t a{};
     b_t b{};
     constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+    auto c = v3::utils::allocate_output_uninitialized<cis>(a, b);
 """,
-        "contraction": "v3::tensor_contraction<cis>(a,b)"
+        "contraction": "v3::tensor_contraction<cis>(a, b, c)"
     }
 }
 

@@ -3,6 +3,7 @@
 #include "tensor/v3/static_shape.hpp"
 #include "tensor/v3/tensor.hpp"
 #include "tensor/v3/tensor_operations.hpp"
+#include "tensor/v3/utils.hpp"
 #include <ranges>
 #include "../common/compare.hpp"
 
@@ -30,12 +31,13 @@ TEST(V3, case_2_2_1)
     a_t a{};
     b_t b{};
     constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+    auto c = v3::utils::allocate_output_uninitialized<cis>(a, b);
 
 
     std::ranges::copy(a_data, a.buffer().begin());
     std::ranges::copy(b_data, b.buffer().begin());
 
-    auto c = v3::tensor_contraction<cis>(a,b);
+    v3::tensor_contraction<cis>(a, b, c);
 
     compare(c.buffer(), e_data);
 }
@@ -65,12 +67,13 @@ TEST(V3, case_3_2_1)
     a_t a{};
     b_t b{};
     constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+    auto c = v3::utils::allocate_output_uninitialized<cis>(a, b);
 
 
     std::ranges::copy(a_data, a.buffer().begin());
     std::ranges::copy(b_data, b.buffer().begin());
 
-    auto c = v3::tensor_contraction<cis>(a,b);
+    v3::tensor_contraction<cis>(a, b, c);
 
     compare(c.buffer(), e_data);
 }
@@ -100,12 +103,13 @@ TEST(V3, case_3_2_2)
     a_t a{};
     b_t b{};
     constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+    auto c = v3::utils::allocate_output_uninitialized<cis>(a, b);
 
 
     std::ranges::copy(a_data, a.buffer().begin());
     std::ranges::copy(b_data, b.buffer().begin());
 
-    auto c = v3::tensor_contraction<cis>(a,b);
+    v3::tensor_contraction<cis>(a, b, c);
 
     compare(c.buffer(), e_data);
 }
@@ -135,12 +139,13 @@ TEST(V3, case_3_3_2)
     a_t a{};
     b_t b{};
     constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+    auto c = v3::utils::allocate_output_uninitialized<cis>(a, b);
 
 
     std::ranges::copy(a_data, a.buffer().begin());
     std::ranges::copy(b_data, b.buffer().begin());
 
-    auto c = v3::tensor_contraction<cis>(a,b);
+    v3::tensor_contraction<cis>(a, b, c);
 
     compare(c.buffer(), e_data);
 }
@@ -170,12 +175,13 @@ TEST(V3, case_4_3_2)
     a_t a{};
     b_t b{};
     constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+    auto c = v3::utils::allocate_output_uninitialized<cis>(a, b);
 
 
     std::ranges::copy(a_data, a.buffer().begin());
     std::ranges::copy(b_data, b.buffer().begin());
 
-    auto c = v3::tensor_contraction<cis>(a,b);
+    v3::tensor_contraction<cis>(a, b, c);
 
     compare(c.buffer(), e_data);
 }
@@ -205,12 +211,13 @@ TEST(V3, case_4_4_3)
     a_t a{};
     b_t b{};
     constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+    auto c = v3::utils::allocate_output_uninitialized<cis>(a, b);
 
 
     std::ranges::copy(a_data, a.buffer().begin());
     std::ranges::copy(b_data, b.buffer().begin());
 
-    auto c = v3::tensor_contraction<cis>(a,b);
+    v3::tensor_contraction<cis>(a, b, c);
 
     compare(c.buffer(), e_data);
 }
@@ -240,12 +247,13 @@ TEST(V3, case_4_4_2)
     a_t a{};
     b_t b{};
     constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+    auto c = v3::utils::allocate_output_uninitialized<cis>(a, b);
 
 
     std::ranges::copy(a_data, a.buffer().begin());
     std::ranges::copy(b_data, b.buffer().begin());
 
-    auto c = v3::tensor_contraction<cis>(a,b);
+    v3::tensor_contraction<cis>(a, b, c);
 
     compare(c.buffer(), e_data);
 }
@@ -275,12 +283,13 @@ TEST(V3, case_5_5_4)
     a_t a{};
     b_t b{};
     constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+    auto c = v3::utils::allocate_output_uninitialized<cis>(a, b);
 
 
     std::ranges::copy(a_data, a.buffer().begin());
     std::ranges::copy(b_data, b.buffer().begin());
 
-    auto c = v3::tensor_contraction<cis>(a,b);
+    v3::tensor_contraction<cis>(a, b, c);
 
     compare(c.buffer(), e_data);
 }
@@ -310,12 +319,13 @@ TEST(V3, case_6_6_5)
     a_t a{};
     b_t b{};
     constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+    auto c = v3::utils::allocate_output_uninitialized<cis>(a, b);
 
 
     std::ranges::copy(a_data, a.buffer().begin());
     std::ranges::copy(b_data, b.buffer().begin());
 
-    auto c = v3::tensor_contraction<cis>(a,b);
+    v3::tensor_contraction<cis>(a, b, c);
 
     compare(c.buffer(), e_data);
 }
@@ -345,12 +355,13 @@ TEST(V3, case_6_3_3)
     a_t a{};
     b_t b{};
     constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+    auto c = v3::utils::allocate_output_uninitialized<cis>(a, b);
 
 
     std::ranges::copy(a_data, a.buffer().begin());
     std::ranges::copy(b_data, b.buffer().begin());
 
-    auto c = v3::tensor_contraction<cis>(a,b);
+    v3::tensor_contraction<cis>(a, b, c);
 
     compare(c.buffer(), e_data);
 }

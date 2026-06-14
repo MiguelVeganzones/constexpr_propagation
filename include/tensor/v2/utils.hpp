@@ -8,6 +8,49 @@
 namespace v2::utils::types
 {
 
+auto allocate_output_uninitialized(
+    containers::concepts::Container auto const&           a,
+    containers::concepts::Container auto const&           b,
+    containers::concepts::ContractionIndexSet auto const& cis
+)
+{
+    using a_t = std::remove_cvref_t<decltype(a)>;
+    using b_t = std::remove_cvref_t<decltype(b)>;
+    using value_type =
+        std::common_type_t<typename a_t::value_type, typename b_t::value_type>;
+    using size_type =
+        std::common_type_t<typename a_t::size_type, typename b_t::size_type>;
+    constexpr auto      s_order    = std::remove_cvref_t<decltype(cis)>::order();
+    constexpr size_type s_out_rank = a_t::rank() + b_t::rank() - 2 * s_order;
+    using tensor_c_t               = v2::tensor<value_type, s_out_rank>;
+
+#ifndef NDEBUG
+    for (auto const& [a_axis, b_axis] : cis)
+    {
+        assert(a.size(a_axis) == b.size(b_axis));
+    }
+#endif
+
+    std::array<bool, a_t::rank()> a_contracted{};
+    std::array<bool, b_t::rank()> b_contracted{};
+    for (auto const& [a_idx, b_idx] : cis)
+    {
+        a_contracted[a_idx] = true;
+        b_contracted[b_idx] = true;
+    }
+    std::array<size_type, s_out_rank> out_sizes{};
+    size_type                         k{};
+    for (size_type i{}; i != a_t::rank(); ++i)
+    {
+        if (!a_contracted[i]) out_sizes[k++] = a.size(i);
+    }
+    for (size_type i{}; i != b_t::rank(); ++i)
+    {
+        if (!b_contracted[i]) out_sizes[k++] = b.size(i);
+    }
+    return tensor_c_t(out_sizes);
+}
+
 template <std::integral Index_Type, std::integral auto Order>
 struct contraction_index_set
 {

@@ -60,6 +60,7 @@ set(RELEASE_FLAGS
 	-fno-trapping-math
 	-march=native
 	-O3
+    -flto
 )
 if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64|ARM64")
     list(APPEND RELEASE_FLAGS -mavx)

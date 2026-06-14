@@ -7,6 +7,7 @@
 #include <concepts>
 #include <functional>
 #include <numeric>
+#include <ranges>
 #include <type_traits>
 
 namespace v2::iteration
@@ -17,9 +18,9 @@ namespace detail
 
 template <std::integral Size_Type, Size_Type I, std::integral auto Order>
 constexpr auto shaped_for_impl(
-    std::array<Size_Type, Order> const& limits,
-    std::array<Size_Type, Order>&       idxs,
-    auto&&                              fn,
+    std::ranges::sized_range auto const& limits,
+    std::ranges::sized_range auto&       idxs,
+    auto&&                               fn,
     auto&&... args
 ) noexcept -> void
 {
@@ -47,12 +48,12 @@ constexpr auto shaped_for_impl(
 
 template <std::integral Size_Type, Size_Type I, std::integral auto Rank>
 constexpr auto shaped_for_inner_impl(
-    std::array<Size_Type, Rank> const& limits,
-    std::array<Size_Type, Rank> const& a_strides,
-    std::array<Size_Type, Rank> const& b_strides,
-    Size_Type                          a_index,
-    Size_Type                          b_index,
-    auto&&                             fn,
+    std::ranges::sized_range auto const& limits,
+    std::ranges::sized_range auto const& a_strides,
+    std::ranges::sized_range auto const& b_strides,
+    Size_Type                            a_index,
+    Size_Type                            b_index,
+    auto&&                               fn,
     auto&&... args
 ) noexcept -> void
 {
@@ -90,15 +91,15 @@ constexpr auto shaped_for_inner_impl(
 
 } // namespace detail
 
-template <std::integral Size_Type, std::integral auto Order>
+template <std::integral auto Order>
 constexpr auto shaped_for(
-    std::array<Size_Type, Order> const& limits,
-    auto&&                              fn,
+    std::ranges::sized_range auto const& limits,
+    auto&&                               fn,
     auto&&... args
 ) noexcept -> void
 {
-    using size_type = Size_Type;
-    std::array<Size_Type, Order> idxs{};
+    using size_type = std::ranges::range_value_t<std::remove_cvref_t<decltype(limits)>>;
+    std::array<size_type, Order> idxs{};
     detail::shaped_for_impl<size_type, size_type{}, Order>(
         limits,
         idxs,
@@ -107,16 +108,16 @@ constexpr auto shaped_for(
     );
 }
 
-template <std::integral Size_Type, std::integral auto Rank>
+template <std::integral auto Rank>
 constexpr auto shaped_for_inner(
-    std::array<Size_Type, Rank> const& limits,
-    std::array<Size_Type, Rank> const& a_strides,
-    std::array<Size_Type, Rank> const& b_strides,
-    auto&&                             fn,
+    std::ranges::sized_range auto const& limits,
+    std::ranges::sized_range auto const& a_strides,
+    std::ranges::sized_range auto const& b_strides,
+    auto&&                               fn,
     auto&&... args
 ) noexcept -> void
 {
-    using size_type = Size_Type;
+    using size_type = std::ranges::range_value_t<std::remove_cvref_t<decltype(limits)>>;
     detail::shaped_for_inner_impl<size_type, size_type{}, Rank>(
         limits,
         a_strides,

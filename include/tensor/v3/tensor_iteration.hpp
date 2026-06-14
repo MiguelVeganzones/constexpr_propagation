@@ -12,6 +12,10 @@
 #include <numeric>
 #include <type_traits>
 
+#define TENSOR_INLINE [[gnu::always_inline, gnu::flatten]]
+
+// #define TENSOR_INLINE [[gnu::noinline]]
+
 namespace v3::iteration
 {
 
@@ -22,11 +26,12 @@ template <
     containers::concepts::LoopControl Loop_Control,
     std::ranges::sized_range auto     A_Strides,
     std::ranges::sized_range auto     B_Strides,
+    std::ranges::sized_range auto     C_Strides,
     std::integral auto                I,
     std::integral                     Index_Type>
-[[gnu::always_inline, gnu::flatten]]
-constexpr auto shaped_for_impl(
+TENSOR_INLINE constexpr auto shaped_for_impl(
     std::array<Index_Type, Loop_Control::rank()>& idxs,
+    Index_Type                                    out_idx,
     Index_Type                                    a_base,
     Index_Type                                    b_base,
     auto&&                                        fn,
@@ -41,16 +46,13 @@ constexpr auto shaped_for_impl(
 
     if constexpr (rank_t{ I } == loop_t::rank())
     {
-        static_assert(std::invocable<
-                      decltype(fn),
-                      decltype(args)...,
-                      decltype(idxs),
-                      index_t,
-                      index_t>);
+        static_assert(
+            std::invocable<decltype(fn), decltype(args)..., index_t, index_t, index_t>
+        );
         std::invoke(
             std::forward<decltype(fn)>(fn),
             std::forward<decltype(args)>(args)...,
-            idxs,
+            out_idx,
             a_base,
             b_base
         );
@@ -60,13 +62,21 @@ constexpr auto shaped_for_impl(
         for (idxs[I] = loop_t::start(I); idxs[I] != loop_t::end(I);
              idxs[I] += loop_t::stride(I))
         {
-            shaped_for_impl<loop_t, A_Strides, B_Strides, I + rank_t{ 1 }, Index_Type>(
+            shaped_for_impl<
+                loop_t,
+                A_Strides,
+                B_Strides,
+                C_Strides,
+                I + rank_t{ 1 },
+                Index_Type>(
                 idxs,
+                out_idx,
                 a_base,
                 b_base,
                 std::forward<decltype(fn)>(fn),
                 std::forward<decltype(args)>(args)...
             );
+            out_idx += C_Strides[I];
             if constexpr (I < A_Strides.size())
             {
                 a_base += A_Strides[I];
@@ -87,8 +97,7 @@ template <
     std::integral                     Index_Type>
     requires(std::ranges::size(A_Strides) == Loop_Control::rank()) &&
             (std::ranges::size(B_Strides) == Loop_Control::rank())
-[[gnu::always_inline, gnu::flatten]]
-constexpr auto shaped_for_inner_impl(
+TENSOR_INLINE constexpr auto shaped_for_inner_impl(
     Index_Type a_index,
     Index_Type b_index,
     auto&&     fn,
@@ -130,16 +139,17 @@ constexpr auto shaped_for_inner_impl(
 template <
     containers::concepts::LoopControl Loop_Control,
     std::ranges::sized_range auto     A_Strides,
-    std::ranges::sized_range auto     B_Strides>
-[[gnu::always_inline, gnu::flatten]]
-constexpr auto shaped_for(auto&& fn, auto&&... args) noexcept -> void
+    std::ranges::sized_range auto     B_Strides,
+    std::ranges::sized_range auto     C_Strides>
+TENSOR_INLINE constexpr auto shaped_for(auto&& fn, auto&&... args) noexcept -> void
 {
     using loop_t  = Loop_Control;
     using rank_t  = typename loop_t::rank_t;
     using index_t = typename loop_t::index_t;
     std::array<typename loop_t::index_t, loop_t::rank()> idxs{};
-    detail::shaped_for_impl<Loop_Control, A_Strides, B_Strides, rank_t{}>(
+    detail::shaped_for_impl<Loop_Control, A_Strides, B_Strides, C_Strides, rank_t{}>(
         idxs,
+        index_t{},
         index_t{},
         index_t{},
         std::forward<decltype(fn)>(fn),
@@ -153,8 +163,7 @@ template <
     std::ranges::sized_range auto     B_Strides>
     requires(std::ranges::size(A_Strides) == Loop_Control::rank()) &&
             (std::ranges::size(B_Strides) == Loop_Control::rank())
-[[gnu::always_inline, gnu::flatten]]
-constexpr auto shaped_for_inner(
+TENSOR_INLINE constexpr auto shaped_for_inner(
     auto const a_base,
     auto const b_base,
     auto&&     fn,

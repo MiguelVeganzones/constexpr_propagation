@@ -17,7 +17,6 @@ namespace v3::utils
 
 namespace types
 {
-
 namespace sequences
 {
 
@@ -314,6 +313,27 @@ template <
 using tensor_contraction_result_t = typename tensor_contraction_result<A, B, CIS>::type;
 
 } // namespace types
+
+template <containers::concepts::ContractionIndexSet auto CIS>
+auto allocate_output_uninitialized(
+    containers::concepts::Container auto const& a,
+    containers::concepts::Container auto const& b
+)
+{
+    using a_t      = std::remove_cvref_t<decltype(a)>;
+    using b_t      = std::remove_cvref_t<decltype(b)>;
+    using result_t = types::tensor_contraction_result<a_t, b_t, CIS>;
+    using c_t      = typename result_t::type;
+
+#ifndef NDEBUG
+    for (auto const& [a_axis, b_axis] : CIS)
+    {
+        assert(a_t::size(a_axis) == b_t::size(b_axis));
+    }
+#endif
+    // TODO: Do not initialize
+    return c_t{};
+}
 
 } // namespace v3::utils
 

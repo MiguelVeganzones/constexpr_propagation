@@ -14,25 +14,21 @@ namespace v2
 auto tensor_contraction(
     containers::concepts::StaticRankContainer auto const& a,
     containers::concepts::StaticRankContainer auto const& b,
+    containers::concepts::StaticRankContainer auto&       c,
     containers::concepts::ContractionIndexSet auto const& cis
-)
+) -> void
 {
     using a_t = std::remove_cvref_t<decltype(a)>;
     using b_t = std::remove_cvref_t<decltype(b)>;
+    using c_t = std::remove_cvref_t<decltype(c)>;
     using value_type =
         std::common_type_t<typename a_t::value_type, typename b_t::value_type>;
     using size_type =
         std::common_type_t<typename a_t::size_type, typename b_t::size_type>;
     constexpr auto      s_order    = std::remove_cvref_t<decltype(cis)>::order();
     constexpr size_type s_out_rank = a_t::rank() + b_t::rank() - 2 * s_order;
-    using tensor_c_t               = v2::tensor<value_type, s_out_rank>;
-
-#ifndef NDEBUG
-    for (auto const& [a_axis, b_axis] : cis)
-    {
-        assert(a.size(a_axis) == b.size(b_axis));
-    }
-#endif
+    static_assert(s_out_rank == c_t::rank());
+    static_assert(c_t::rank() > 0);
 
     std::array<bool, a_t::rank()> a_contracted{};
     std::array<bool, b_t::rank()> b_contracted{};
@@ -41,21 +37,11 @@ auto tensor_contraction(
         a_contracted[a_idx] = true;
         b_contracted[b_idx] = true;
     }
-    std::array<size_type, s_out_rank> out_sizes{};
-    size_type                         k{};
-    for (size_type i{}; i != a_t::rank(); ++i)
-    {
-        if (!a_contracted[i]) out_sizes[k++] = a.size(i);
-    }
-    for (size_type i{}; i != b_t::rank(); ++i)
-    {
-        if (!b_contracted[i]) out_sizes[k++] = b.size(i);
-    }
-    tensor_c_t c(out_sizes);
+    const auto& out_sizes = c.sizes();
 
     std::array<size_type, a_t::rank() - s_order> a_free_axes{};
     std::array<size_type, b_t::rank() - s_order> b_free_axes{};
-    k = 0;
+    size_type                                    k = 0;
     for (size_type i{}; i != a_t::rank(); ++i)
     {
         if (!a_contracted[i])
@@ -90,7 +76,7 @@ auto tensor_contraction(
         b_contract_strides[i]        = b.stride(b_axis);
     }
 
-    iteration::shaped_for(
+    iteration::shaped_for<c_t::rank()>(
         out_sizes,
         [&a,
          &b,
@@ -107,7 +93,8 @@ auto tensor_contraction(
                 a_base += out_idxs[ki++] * a.stride(a_axis);
             for (auto b_axis : b_free_axes)
                 b_base += out_idxs[ki++] * b.stride(b_axis);
-            iteration::shaped_for_inner(
+            value_type sum{};
+            iteration::shaped_for_inner<s_order>(
                 contract_sizes,
                 a_contract_strides,
                 b_contract_strides,
@@ -118,12 +105,12 @@ auto tensor_contraction(
                     //
                     e += a.buffer()[a_base + a_offset] * b.buffer()[b_base + b_offset];
                 },
-                out[out_idxs]
+                sum
             );
+            out[out_idxs] = sum;
         },
         c
     );
-    return c;
 }
 
 } // namespace v2

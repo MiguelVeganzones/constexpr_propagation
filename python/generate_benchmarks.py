@@ -21,8 +21,8 @@ using b_t = v1::tensor<F>;
         "construct": """
 a_t a(a_shape);
 b_t b(b_shape);
-const auto cis =
-    v1::utils::types::contraction_index_set<std::size_t>(cis_data);
+const auto cis = v1::utils::types::contraction_index_set<std::size_t>(cis_data);
+auto c = v1::utils::types::allocate_output_uninitialized(a, b, cis);
 """
     },
 
@@ -38,8 +38,8 @@ using b_t = v2::tensor<F, b_rank>;
         "construct": """
 a_t a(a_shape);
 b_t b(b_shape);
-constexpr auto cis =
-    v2::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+constexpr auto cis = v2::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+auto c = v2::utils::types::allocate_output_uninitialized(a, b, cis);
 """
     },
 
@@ -64,8 +64,8 @@ using b_t = v3::tensor<
         "construct": """
 a_t a{};
 b_t b{};
-constexpr auto cis =
-    v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+auto c = v3::utils::allocate_output_uninitialized<cis>(a, b);
 """
     }
 }
@@ -73,22 +73,22 @@ constexpr auto cis =
 CONTRACTION_IMPLS = {
     "c1": {
         "include": '#include "tensor/v1/tensor_operations.hpp"',
-        "call": "v1::tensor_contraction(a,b,cis)"
+        "call": "v1::tensor_contraction(a, b, c, cis)"
     },
 
     "c2": {
         "include": '#include "tensor/v2/tensor_operations.hpp"',
-        "call": "v2::tensor_contraction(a,b,cis)"
+        "call": "v2::tensor_contraction(a, b, c, cis)"
     },
 
     "c3": {
         "include": '#include "tensor/v3/tensor_operations.hpp"',
-        "call": "v3::tensor_contraction<cis>(a,b)"
+        "call": "v3::tensor_contraction<cis>(a, b, c)"
     }
 }
 
 BENCHMARK_TEMPLATE = """
-static void BM_tc_{name}_{container}_{backend}(benchmark::State& state)
+static void BM_tc_{name}_{backend}(benchmark::State& state)
 {{
     using F = float;
 
@@ -112,10 +112,11 @@ static void BM_tc_{name}_{container}_{backend}(benchmark::State& state)
 
     for (auto _ : state)
     {{
-        benchmark::DoNotOptimize({contraction});
+        {contraction};
+        benchmark::ClobberMemory();
     }}
 }}
-BENCHMARK(BM_tc_{name}_{container}_{backend});
+BENCHMARK(BM_tc_{name}_{backend});
 """
 
 COMBINATIONS = [
@@ -185,11 +186,73 @@ def generate_cases():
             b=b
         ))
 
-    add("2_2_1", (2, 2), (2, 2), [(1, 0)])
-    add("3_3_2", (3, 3, 3), (3, 3, 3), [(2, 0), (1, 1)])
-    add("4_4_3", (4, 4, 4, 4), (4, 4, 4, 4), [(3, 0), (1, 2), (2, 1)])
-    add("4_4_2", (4, 4, 4, 4), (4, 4, 4, 4), [(3, 0), (1, 3)])
-    add("5_5_4", (5, 4, 4, 4, 5), (4, 4, 4, 5, 5), [(3, 0), (1, 2), (2, 1), (4, 4)])
+    add("2_2_1",  (2, 2),   (2, 2),   [(0, 0)])
+    add("2_4_1",  (4, 4),   (4, 4),   [(0, 0)])
+    add("2_8_1",  (8, 8),   (8, 8),   [(0, 0)])
+    add("2_16_1", (16, 16), (16, 16), [(0, 0)])
+    add("2_32_1", (32, 32), (32, 32), [(0, 0)])
+    add("2_64_1", (64, 64), (64, 64), [(0, 0)])
+
+    add("3_2_1",  (2,  2,  2),  (2,  2,  2),  [(0, 0)])
+    add("3_4_1",  (4,  4,  4),  (4,  4,  4),  [(0, 0)])
+    add("3_8_1",  (8,  8,  8),  (8,  8,  8),  [(0, 0)])
+    add("3_16_1", (16, 16, 16), (16, 16, 16), [(0, 0)])
+    add("3_32_1", (32, 32, 32), (32, 32, 32), [(0, 0)])
+    # add("3_64_1", (64, 64, 64), (64, 64, 64), [(0, 0)])
+
+    add("3_2_2",  (2,  2,  2),  (2,  2,  2),  [(0, 0), (1, 1)])
+    add("3_4_2",  (4,  4,  4),  (4,  4,  4),  [(0, 0), (1, 1)])
+    add("3_8_2",  (8,  8,  8),  (8,  8,  8),  [(0, 0), (1, 1)])
+    add("3_16_2", (16, 16, 16), (16, 16, 16), [(0, 0), (1, 1)])
+    add("3_32_2", (32, 32, 32), (32, 32, 32), [(0, 0), (1, 1)])
+    # add("3_64_2", (64, 64, 64), (64, 64, 64), [(0, 0), (1, 1)])
+
+    add("4_2_2",  (2,  2,  2,  2),  (2,  2,  2,  2),  [(0, 0), (1, 1)])
+    add("4_4_2",  (4,  4,  4,  4),  (4,  4,  4,  4),  [(0, 0), (1, 1)])
+    add("4_8_2",  (8,  8,  8,  8),  (8,  8,  8,  8),  [(0, 0), (1, 1)])
+    add("4_16_2", (16, 16, 16, 16), (16, 16, 16, 16), [(0, 0), (1, 1)])
+    # add("4_32_2", (32, 32, 32, 32), (32, 32, 32, 32), [(0, 0), (1, 1)])
+    # add("4_64_2", (64, 64, 64, 64), (64, 64, 64, 64), [(0, 0), (1, 1)])
+
+    add("5_2_2",  (2,  2,  2,  2,  2),  (2,  2,  2,  2,  2),  [(0, 0), (1, 1)])
+    add("5_3_2",  (3,  3,  3,  3,  3),  (3,  3,  3,  3,  3),  [(0, 0), (1, 1)])
+    add("5_4_2",  (4,  4,  4,  4,  4),  (4,  4,  4,  4,  4),  [(0, 0), (1, 1)])
+    add("5_8_2",  (8,  8,  8,  8,  8),  (8,  8,  8,  8,  8),  [(0, 0), (1, 1)])
+    # add("5_16_4", (16, 16, 16, 16, 16), (16, 16, 16, 16, 16), [(0, 0), (1, 1)])
+    # add("4_32_4", (32, 32, 32, 32, 32), (32, 32, 32, 32, 32), [(0, 0), (1, 1)])
+    # add("4_64_4", (64, 64, 64, 64, 64), (64, 64, 64, 64, 64), [(0, 0), (1, 1)])
+
+    add("5_2_3",  (2,  2,  2,  2,  2),  (2,  2,  2,  2,  2),  [(0, 0), (1, 1), (2, 2)])
+    add("5_4_3",  (4,  4,  4,  4,  4),  (4,  4,  4,  4,  4),  [(0, 0), (1, 1), (2, 2)])
+    add("5_8_3",  (8,  8,  8,  8,  8),  (8,  8,  8,  8,  8),  [(0, 0), (1, 1), (2, 2)])
+    # add("5_16_3", (16, 16, 16, 16, 16), (16, 16, 16, 16, 16), [(0, 0), (1, 1), (2, 2)])
+    # add("4_32_3", (32, 32, 32, 32, 32), (32, 32, 32, 32, 32), [(0, 0), (1, 1), (2, 2)])
+    # add("4_64_3", (64, 64, 64, 64, 64), (64, 64, 64, 64, 64), [(0, 0), (1, 1), (2, 2)])
+
+    add("6_2_3",  (2,  2,  2,  2,  2,  2),  (2,  2,  2,  2,  2,  2),  [(0, 0), (1, 1), (2, 2)])
+    add("6_4_3",  (4,  4,  4,  4,  4,  4),  (4,  4,  4,  4,  4,  4),  [(0, 0), (1, 1), (2, 2)])
+    # add("6_8_3",  (8,  8,  8,  8,  8,  8),  (8,  8,  8,  8,  8,  8),  [(0, 0), (1, 1), (2, 2)])
+    # add("6_16_1", (16, 16, 16, 16, 16, 16), (16, 16, 16, 16, 16, 16), [(0, 0), (1, 1), (2, 2)])
+    # add("6_32_1", (32, 32, 32, 32, 32, 32), (32, 32, 32, 32, 32, 32), [(0, 0), (1, 1), (2, 2)])
+    # add("6_64_1", (64, 64, 64, 64, 64, 64), (64, 64, 64, 64, 64, 64), [(0, 0), (1, 1), (2, 2)])
+
+    # add("3_2_2",  (2,  2,  2),  (2,  2,  2),  [(1, 0), (0, 1)])
+    # add("3_4_2",  (4,  4,  4),  (4,  4,  4),  [(1, 0), (0, 1)])
+    # add("3_8_2",  (8,  8,  8),  (8,  8,  8),  [(1, 0), (0, 1)])
+    # add("3_16_2", (16, 16, 16), (16, 16, 16), [(1, 0), (0, 1)])
+    # add("3_32_2", (32, 32, 32), (32, 32, 32), [(1, 0), (0, 1)])
+    #
+    # add("4_2_2",  (2,  2,  2,  2),  (2,  2,  2,  2),  [(1, 0), (0, 1)])
+    # add("4_4_2",  (4,  4,  4,  4),  (4,  4,  4,  4),  [(1, 0), (0, 1)])
+    # add("4_8_2",  (8,  8,  8,  8),  (8,  8,  8,  8),  [(1, 0), (0, 1)])
+    # add("4_16_2", (16, 16, 16, 16), (16, 16, 16, 16), [(1, 0), (0, 1)])
+    #
+    # add("5_2_2",  (2,  2,  2,  2,  2),  (2,  2,  2,  2,  2),  [(1, 0), (0, 1)])
+    # add("5_4_2",  (4,  4,  4,  4,  4),  (4,  4,  4,  4,  4),  [(1, 0), (0, 1)])
+    # add("5_8_2",  (8,  8,  8,  8,  8),  (8,  8,  8,  8,  8),  [(1, 0), (0, 1)])
+    #
+    # add("6_2_2",  (2,  2,  2,  2,  2,  2),  (2,  2,  2,  2,  2,  2),  [(1, 0), (0, 1)])
+    # add("6_4_2",  (4,  4,  4,  4,  4,  4),  (4,  4,  4,  4,  4,  4),  [(1, 0), (0, 1)])
 
     return cases
 
@@ -198,7 +261,7 @@ def generate_cases():
 # RENDERER
 # =========================================================
 
-def render(case, container, backend_name, snippet):
+def render(case, backend_name, snippet):
     a = ", ".join(f"{x}f" for x in case.a.flatten())
     b = ", ".join(f"{x}f" for x in case.b.flatten())
 
@@ -211,7 +274,6 @@ def render(case, container, backend_name, snippet):
     )
 
     return BENCHMARK_TEMPLATE.format(
-        container=container.upper(),
         backend=backend_name.upper(),
         name=case.name,
         a_data=a,
@@ -230,7 +292,6 @@ def render(case, container, backend_name, snippet):
 # =========================================================
 
 def emit_file(
-    container,
     backend_name,
     include_block,
     snippet,
@@ -241,7 +302,6 @@ def emit_file(
         out.append(
             render(
                 case,
-                container,
                 backend_name,
                 snippet,
             )
@@ -278,7 +338,6 @@ def main():
         )
 
         emit_file(
-            container="t",
             backend_name=backend_name,
             include_block=include_block,
             snippet=snippet,

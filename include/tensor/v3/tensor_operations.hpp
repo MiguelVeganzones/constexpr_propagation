@@ -8,34 +8,28 @@
 namespace v3
 {
 
-template <
-    containers::concepts::ContractionIndexSet auto CIS,
-    containers::concepts::StaticContainer          A,
-    containers::concepts::StaticContainer          B>
-[[nodiscard]]
-constexpr auto tensor_contraction(A const& a, B const& b) noexcept -> utils::types::
-    tensor_contraction_result_t<std::remove_cvref_t<A>, std::remove_cvref_t<B>, CIS>
+template <containers::concepts::ContractionIndexSet auto CIS>
+constexpr auto tensor_contraction(
+    containers::concepts::StaticContainer auto const& a,
+    containers::concepts::StaticContainer auto const& b,
+    containers::concepts::StaticContainer auto&       c
+) -> void
 {
-    using tensor_a_t = std::remove_cvref_t<A>;
-    using tensor_b_t = std::remove_cvref_t<B>;
-    using result_t = utils::types::tensor_contraction_result<tensor_a_t, tensor_b_t, CIS>;
-    using tensor_c_t = typename result_t::type;
-
-#ifndef NDEBUG
-    for (auto const& [a_axis, b_axis] : CIS)
-    {
-        assert(tensor_a_t::size(a_axis) == tensor_b_t::size(b_axis));
-    }
-#endif
-
-    tensor_c_t c{};
+    using a_t        = std::remove_cvref_t<decltype(a)>;
+    using b_t        = std::remove_cvref_t<decltype(b)>;
+    using c_t        = std::remove_cvref_t<decltype(c)>;
+    using result_t   = utils::types::tensor_contraction_result<a_t, b_t, CIS>;
+    using value_type = typename c_t::value_type;
+    // TODO_ Check output shape
 
     iteration::shaped_for<
         typename result_t::outter_loop_t,
         result_t::s_a_free_strides,
-        result_t::s_b_free_strides>(
-        [&a, &b](auto& out, auto const& out_idxs, auto const a_base, auto const b_base)
+        result_t::s_b_free_strides,
+        c_t::strides()>(
+        [&a, &b](auto& out, auto const out_idx, auto const a_base, auto const b_base)
         {
+            value_type sum{};
             iteration::shaped_for_inner<
                 typename result_t::inner_loop_t,
                 result_t::s_a_contract_strides,
@@ -47,12 +41,12 @@ constexpr auto tensor_contraction(A const& a, B const& b) noexcept -> utils::typ
                 { //
                     e += a.buffer()[a_offset] * b.buffer()[b_offset];
                 },
-                out[out_idxs]
+                sum
             );
+            out[out_idx] = sum;
         },
         c
     );
-    return c;
 }
 
 } // namespace v3
