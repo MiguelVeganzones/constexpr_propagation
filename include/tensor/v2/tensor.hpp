@@ -83,13 +83,13 @@ struct tensor
     }
 
     [[nodiscard]]
-    auto sizes() const noexcept -> std::span<size_type const>
+    auto sizes() const noexcept -> std::span<size_type const, s_rank>
     {
         return std::span{ sizes_ };
     }
 
     [[nodiscard]]
-    auto strides() const noexcept -> std::span<size_type const>
+    auto strides() const noexcept -> std::span<size_type const, s_rank>
     {
         return std::span{ strides_ };
     }

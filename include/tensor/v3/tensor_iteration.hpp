@@ -12,9 +12,9 @@
 #include <numeric>
 #include <type_traits>
 
-#define TENSOR_INLINE [[gnu::always_inline, gnu::flatten]]
+#define INLINE_ITERATION [[gnu::always_inline, gnu::flatten]]
 
-// #define TENSOR_INLINE [[gnu::noinline]]
+// #define INLINE_ITERATION [[gnu::noinline]]
 
 namespace v3::iteration
 {
@@ -29,7 +29,7 @@ template <
     std::ranges::sized_range auto     C_Strides,
     std::integral auto                I,
     std::integral                     Index_Type>
-TENSOR_INLINE constexpr auto shaped_for_impl(
+INLINE_ITERATION constexpr auto shaped_for_impl(
     std::array<Index_Type, Loop_Control::rank()>& idxs,
     Index_Type                                    out_idx,
     Index_Type                                    a_base,
@@ -47,7 +47,8 @@ TENSOR_INLINE constexpr auto shaped_for_impl(
     if constexpr (rank_t{ I } == loop_t::rank())
     {
         static_assert(
-            std::invocable<decltype(fn), decltype(args)..., index_t, index_t, index_t>
+            std::
+                is_invocable_v<decltype(fn), decltype(args)..., index_t, index_t, index_t>
         );
         std::invoke(
             std::forward<decltype(fn)>(fn),
@@ -97,7 +98,7 @@ template <
     std::integral                     Index_Type>
     requires(std::ranges::size(A_Strides) == Loop_Control::rank()) &&
             (std::ranges::size(B_Strides) == Loop_Control::rank())
-TENSOR_INLINE constexpr auto shaped_for_inner_impl(
+INLINE_ITERATION constexpr auto shaped_for_inner_impl(
     Index_Type a_index,
     Index_Type b_index,
     auto&&     fn,
@@ -141,7 +142,7 @@ template <
     std::ranges::sized_range auto     A_Strides,
     std::ranges::sized_range auto     B_Strides,
     std::ranges::sized_range auto     C_Strides>
-TENSOR_INLINE constexpr auto shaped_for(auto&& fn, auto&&... args) noexcept -> void
+INLINE_ITERATION constexpr auto shaped_for(auto&& fn, auto&&... args) noexcept -> void
 {
     using loop_t  = Loop_Control;
     using rank_t  = typename loop_t::rank_t;
@@ -163,7 +164,7 @@ template <
     std::ranges::sized_range auto     B_Strides>
     requires(std::ranges::size(A_Strides) == Loop_Control::rank()) &&
             (std::ranges::size(B_Strides) == Loop_Control::rank())
-TENSOR_INLINE constexpr auto shaped_for_inner(
+INLINE_ITERATION constexpr auto shaped_for_inner(
     auto const a_base,
     auto const b_base,
     auto&&     fn,

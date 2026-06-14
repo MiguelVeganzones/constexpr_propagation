@@ -39,8 +39,8 @@ auto tensor_contraction(
     }
     const auto& out_sizes = c.sizes();
 
-    std::array<size_type, a_t::rank() - s_order> a_free_axes{};
-    std::array<size_type, b_t::rank() - s_order> b_free_axes{};
+    std::array<size_type, a_t::rank() - s_order> a_free_axes;
+    std::array<size_type, b_t::rank() - s_order> b_free_axes;
     size_type                                    k = 0;
     for (size_type i{}; i != a_t::rank(); ++i)
     {
@@ -58,6 +58,19 @@ auto tensor_contraction(
             b_free_axes[k] = i;
             k++;
         }
+    }
+
+    std::array<size_type, a_t::rank() - s_order> a_free_strides;
+    std::array<size_type, b_t::rank() - s_order> b_free_strides;
+    k = 0;
+    for (auto a_axis : a_free_axes)
+    {
+        a_free_strides[k++] = a.stride(a_axis);
+    }
+    k = 0;
+    for (auto b_axis : b_free_axes)
+    {
+        b_free_strides[k++] = b.stride(b_axis);
     }
 
     std::array<size_type, s_order> contract_sizes;
@@ -78,21 +91,26 @@ auto tensor_contraction(
 
     iteration::shaped_for<c_t::rank()>(
         out_sizes,
+        a_free_strides,
+        b_free_strides,
+        c.strides(),
         [&a,
          &b,
-         &a_free_axes,
-         &b_free_axes,
+         // &a_free_axes,
+         // &b_free_axes,
          &contract_sizes,
          &a_contract_strides,
-         &b_contract_strides](auto& out, auto const& out_idxs)
+         &b_contract_strides](
+            auto& out, auto const out_idx, auto const a_base, auto const b_base
+        )
         {
-            size_type a_base{};
-            size_type b_base{};
-            size_type ki = 0;
-            for (auto a_axis : a_free_axes)
-                a_base += out_idxs[ki++] * a.stride(a_axis);
-            for (auto b_axis : b_free_axes)
-                b_base += out_idxs[ki++] * b.stride(b_axis);
+            // size_type a_base{};
+            // size_type b_base{};
+            // size_type ki = 0;
+            // for (auto a_axis : a_free_axes)
+            //     a_base += out_idxs[ki++] * a.stride(a_axis);
+            // for (auto b_axis : b_free_axes)
+            //     b_base += out_idxs[ki++] * b.stride(b_axis);
             value_type sum{};
             iteration::shaped_for_inner<s_order>(
                 contract_sizes,
@@ -107,7 +125,7 @@ auto tensor_contraction(
                 },
                 sum
             );
-            out[out_idxs] = sum;
+            out.buffer()[out_idx] = sum;
         },
         c
     );
