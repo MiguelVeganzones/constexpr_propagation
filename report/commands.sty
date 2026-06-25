@@ -1,0 +1,46 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{commands}
+
+\newcommand{\codecommand}[1]{\texttt{#1}}
+\newcommand{\cpp}{C\texttt{++}}
+\newcommand{\binsec}[1]{\texttt{#1}}
+\newcommand{\dtype}[1]{\texttt{#1}}
+
+% Acronym
+\newcommand{\nestedac}[1]{%
+  \acs{#1}%
+}
+
+% Prpbability, stats and stuff
+\newcommand*\mean[1]{\overline{#1}}
+\newcommand{\probP}{\text{I\kern-0.15em P}}
+
+% cleverref
+\newcommand{\pcref}[1]{(\cref{#1})}
+
+\newcommand{\floor}[1]{\left\lfloor #1 \right\rfloor}
+\newcommand{\ceil}[1]{\left\lceil #1 \right\rceil}
+
+% Tikz
+\newcommand{\drawci}[3]{%
+  \begin{tikzpicture}[baseline=-0.5ex, scale=0.8]
+    \pgfmathsetmacro{\minval}{#1/100}
+    \pgfmathsetmacro{\meanval}{#2/100}
+    \pgfmathsetmacro{\maxval}{#3/100}
+    \draw[thick] (\minval,0) -- (\maxval,0);
+    \draw (\minval,-0.1) -- (\minval,0.1);
+    \draw (\maxval,-0.1) -- (\maxval,0.1);
+    \fill (\meanval,0) circle (0.05);
+  \end{tikzpicture}%
+}
+
+% Formatting
+\newcommand{\level}[1]{{#1}}
+
+\newcommand{\ie}{\emph{i.e.,}\@ifnextchar.{\!\@gobble}{}}
+\newcommand{\eg}{\emph{e.g.}\@ifnextchar.{\!\@gobble}{}}
+\newcommand{\etc}{etc\@ifnextchar.{}{.\@}}
+
+\newcommand{\code}[1]{\colorbox{light-gray}{\texttt{#1}}}
+
+\endinput
