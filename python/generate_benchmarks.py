@@ -3,6 +3,8 @@ import pathlib
 from dataclasses import dataclass
 from typing import Tuple, List
 import config
+from math import prod
+import csv
 
 
 # =========================================================
@@ -192,6 +194,64 @@ def generate_cases():
 
     return cases
 
+def compute_flops(path):
+    with open(path, "w", newline="") as f:
+        writer = csv.writer(f)
+
+        writer.writerow([
+            "name",
+            "output_size",
+            "reduction_size",
+            "multiplies",
+            "adds",
+            "flops",
+            "fma_flops",
+        ])
+
+        for name, shape_a, shape_b, pairs in config.samples:
+            info = contraction_flops(shape_a, shape_b, pairs)
+            writer.writerow([
+                name,
+                info["output_size"],
+                info["reduction_size"],
+                info["multiplies"],
+                info["adds"],
+                info["flops"],
+                info["fma_flops"],
+            ])
+
+def contraction_flops(shapeA, shapeB, pairs):
+    contractedA = {i for i, _ in pairs}
+    contractedB = {j for _, j in pairs}
+
+    # sanity check
+    for ia, ib in pairs:
+        assert shapeA[ia] == shapeB[ib]
+
+    output_size = (
+        prod(shapeA[i] for i in range(len(shapeA)) if i not in contractedA)
+        * prod(shapeB[j] for j in range(len(shapeB)) if j not in contractedB)
+    )
+
+    reduction_size = prod(shapeA[i] for i, _ in pairs)
+
+    multiplications = output_size * reduction_size
+    additions = output_size * (reduction_size - 1)
+
+    return {
+        "output_size": output_size,
+        "reduction_size": reduction_size,
+        "multiplies": multiplications,
+        "adds": additions,
+        "flops": multiplications + additions,
+        "fma_flops": 2 * multiplications,
+    }
+
+    print(
+        f"Generated {len(cases)} cases for "
+        f"{len(COMBINATIONS)} backend combinations"
+    )
+
 
 # =========================================================
 # RENDERER
@@ -280,11 +340,7 @@ def main():
             cases=cases,
         )
 
-    print(
-        f"Generated {len(cases)} cases for "
-        f"{len(COMBINATIONS)} backend combinations"
-    )
-
+    compute_flops("benchmarks/generated/benchmark_info.csv")
 
 if __name__ == "__main__":
     main()

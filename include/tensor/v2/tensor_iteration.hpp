@@ -16,7 +16,7 @@ namespace v2::iteration
 namespace detail
 {
 
-template <std::integral Size_Type, Size_Type I, std::integral auto Order>
+template <std::integral Size_Type, Size_Type I, Size_Type Order>
 constexpr auto shaped_for_impl(
     std::ranges::sized_range auto const& limits,
     std::ranges::sized_range auto&       idxs,
@@ -25,7 +25,7 @@ constexpr auto shaped_for_impl(
 ) noexcept -> void
 {
     using size_type = Size_Type;
-    if constexpr (I == size_type{ Order })
+    if constexpr (I == Order)
     {
         static_assert(std::invocable<decltype(fn), decltype(args)..., decltype(idxs)>);
         std::invoke(
@@ -100,7 +100,7 @@ constexpr auto shaped_for(
 {
     using size_type = std::ranges::range_value_t<std::remove_cvref_t<decltype(limits)>>;
     std::array<size_type, Order> idxs{};
-    detail::shaped_for_impl<size_type, size_type{}, Order>(
+    detail::shaped_for_impl<size_type, size_type{}, size_type{ Order }>(
         limits,
         idxs,
         std::forward<decltype(fn)>(fn),

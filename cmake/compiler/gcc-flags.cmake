@@ -6,6 +6,8 @@ set(COMMON_FLAGS
     -fverbose-asm
     # -freflection
     -fno-exceptions
+	-march=native
+    -mavx
 )
 
 set(WARNINGS
@@ -61,36 +63,24 @@ set(DEBUG_FLAGS
 	-fno-eliminate-unused-debug-symbols
 	-fno-inline
 	-fno-default-inline
-	-march=native
 	-O0
 )
-if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64|ARM64")
-    list(APPEND DEBUG_FLAGS -mavx)
-endif()
 
 set(RELEASE_FLAGS
 	-fno-math-errno
 	-ffast-math
 	-fno-trapping-math
 	-fstrength-reduce
-	-march=native
 	-O3
     -flto
 )
-if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64|ARM64")
-    list(APPEND RELEASE_FLAGS -mavx)
-endif()
 
 set(RELWITHDEBINFO_FLAGS
 	-fno-math-errno
 	-fno-trapping-math
 	-fstrength-reduce
-	-march=native
 	-O2
 )
-if(NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm|aarch64|ARM64")
-    list(APPEND RELWITHDEBINFO_FLAGS -mavx)
-endif()
 
 set(SANITIZERS
 	-fsanitize=address

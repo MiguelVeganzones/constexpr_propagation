@@ -2,6 +2,8 @@ import pathlib
 import polars as pl
 import matplotlib.pyplot as plt
 import itertools
+from scipy.optimize import curve_fit
+import numpy as np
 
 SUMMARY_SUFFIXES = (
     "_mean",
@@ -13,28 +15,35 @@ SUMMARY_SUFFIXES = (
 def read_build_csv(path: pathlib.Path) -> pl.DataFrame:
     df = pl.read_csv(path)
 
-    PATTERN = r"(.+?)_(.+?)_(\d+)_(\d+)_(\d+)"
-    return (
+    PATTERN = r"(.+?)_(.+?)_([A-Za-z0-9]+)"
+    results = (
         df
         .with_columns(
             container=pl.col("name").str.extract(PATTERN, 1).cast(pl.String),
             impl=pl.col("name").str.extract(PATTERN, 2).cast(pl.String),
-            dim=pl.col("name").str.extract(PATTERN, 3).cast(pl.Int32),
-            size=pl.col("name").str.extract(PATTERN, 4).cast(pl.Int32),
-            order=pl.col("name").str.extract(PATTERN, 5).cast(pl.Int32),
+            name=pl.col("name").str.extract(PATTERN, 3).cast(pl.String),
+            # size=pl.col("name").str.extract(PATTERN, 4).cast(pl.Int32),
+            # order=pl.col("name").str.extract(PATTERN, 5).cast(pl.Int32),
             build_time=pl.col("build_time").cast(pl.Float32),
         )
-        .with_columns(
-            op_count=(pl.col("size")**(2*pl.col("dim")-pl.col("order"))).cast(pl.Int32),
-            footprint=((2*pl.col("size")**(pl.col("dim"))+pl.col("size")**(2*(pl.col("dim")-pl.col("order"))))*4).cast(pl.Int32),
-        )
     )
+
+    info = pl.read_csv("benchmarks/generated/benchmark_info.csv")
+
+    print(results)
+    print(info)
+    return results.join(
+        info.select(["name", "flops", "output_size"]),
+        on="name",
+        how="left",
+    )
+
 
 def read_benchmark_csv(path: pathlib.Path) -> pl.DataFrame:
     df = pl.read_csv(path)
 
-    PATTERN = r"^BM_tc_(\d+)_(\d+)_(\d+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)$"
-    return (
+    PATTERN = r"^BM_tc_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)$"
+    results = (
         df
         .with_columns(
             source_file=pl.lit(path.name),
@@ -46,16 +55,20 @@ def read_benchmark_csv(path: pathlib.Path) -> pl.DataFrame:
             & ~pl.col("name").str.ends_with("_cv")
         )
         .with_columns(
-            dim=pl.col("name").str.extract(PATTERN, 1).cast(pl.Int32),
-            size=pl.col("name").str.extract(PATTERN, 2).cast(pl.Int32),
-            order=pl.col("name").str.extract(PATTERN, 3).cast(pl.Int32),
-            container=pl.col("name").str.extract(PATTERN, 4).cast(pl.String),
-            impl=pl.col("name").str.extract(PATTERN, 5).cast(pl.String),
+            name=pl.col("name").str.extract(PATTERN, 1).cast(pl.String),
+            container=pl.col("name").str.extract(PATTERN, 2).cast(pl.String),
+            impl=pl.col("name").str.extract(PATTERN, 3).cast(pl.String),
         )
-        .with_columns(
-            op_count=(pl.col("size")**(2*pl.col("dim")-pl.col("order"))).cast(pl.Int32),
-            footprint=((2*pl.col("size")**(pl.col("dim"))+pl.col("size")**(2*(pl.col("dim")-pl.col("order"))))*4).cast(pl.Int32),
-        )
+    )
+
+    info = pl.read_csv("benchmarks/generated/benchmark_info.csv")
+
+    print(results)
+    print(info)
+    return results.join(
+        info.select(["name", "flops", "output_size"]),
+        on="name",
+        how="left",
     )
 
 
@@ -70,10 +83,7 @@ def summary(df: pl.DataFrame):
         .group_by([
             "container",
             "impl",
-            "dim",
-            "size",
-            "order",
-            "op_count",
+            "flops",
         ])
         .agg(
             pl.col("real_time").median().alias("median_time"),
@@ -88,7 +98,7 @@ def runtime_matrix(
     df: pl.DataFrame,
     container: str,
     impl: str,
-    runtime_x: str = "op_count",
+    runtime_x: str = "flops",
     runtime_y: str = "real_time",
     metric: str = "median",
 ) -> pl.DataFrame:
@@ -118,11 +128,15 @@ def runtime_matrix(
 
 def plot_scaling(
     df: pl.DataFrame,
-    runtime_x: str = "op_count",
+    runtime_x: str = "flops",
     runtime_y: str = "real_time",
     agg: str = "mean",
     logy: bool = True,
+    plot_name = 'scale_plot'
 ):
+    if df.is_empty():
+        return
+
     agg_expr = {
         "median": pl.col(runtime_y).median(),
         "mean": pl.col(runtime_y).mean(),
@@ -139,7 +153,7 @@ def plot_scaling(
 
     pdf = summary.to_pandas()
 
-    combos = sorted(pdf[["impl", "container"]].drop_duplicates().values.tolist())
+    combos = sorted(pdf[["impl", "container"]].dropna().drop_duplicates().values.tolist())
 
     colors = plt.cm.tab10.colors
     color_map = {
@@ -147,39 +161,76 @@ def plot_scaling(
         for i, (impl, container) in enumerate(combos)
     }
 
-    plt.figure()
 
+    plt.figure(figsize=(6,4))
     for (impl, container), sub in pdf.groupby(["impl", "container"]):
         sub = sub.sort_values(runtime_x)
 
         label = f"{impl} {container}"
 
-        plt.plot(
-            sub[runtime_x],
-            sub["time"],
+        x = sub[runtime_x]
+        y = sub["time"]
+
+        plt.scatter(
+            x,
+            y,
             color=color_map[(impl, container)],
-            linestyle='-',
-            marker="o",
-            linewidth=1.5,
-            label=label,
+            s=40,
+            label=label
         )
+
+        # plt.plot(
+        #     sub[runtime_x],
+        #     np.maximum.accumulate(sub["time"]),
+        #     color=color_map[(impl, container)],
+        #     linestyle='-',
+        #     linewidth=1.5,
+        # )
+
+        def linear(x, a, b):
+            return a * x + b
+
+        xlog = np.log10(x)
+        ylog = np.log10(y)
+
+        params, covariance = curve_fit(linear, xlog, ylog)
+        a, b = params
+        y_fit = 10**linear(xlog, a, b)
+        plt.plot(
+                x,
+                y_fit,
+                linewidth=2
+                # label=rf"fit: $y={a:.2f}x+{b:.2f}$"
+                )
+
+        # plt.plot(
+        #     sub[runtime_x],
+        #     sub["time"],
+        #     color=color_map[(impl, container)],
+        #     linestyle='-',
+        #     marker="o",
+        #     linewidth=1.5,
+        #     label=label,
+        # )
 
     plt.xscale("log", base=10)
     if logy:
         plt.yscale("log", base=10)
 
-    if runtime_x == "op_count":
-        plt.xlabel("Operation Count")
+    if runtime_x == "flops":
+        plt.xlabel("Floating-point operations")
     if runtime_x == "footprint":
         plt.xlabel("Memory Footprint [bytes]")
     if runtime_y == "real_time":
-        plt.ylabel(f"Runtime ({agg})")
+        plt.ylabel(f"Runtime ({agg}) [s]")
     if runtime_y == "build_time":
-        plt.ylabel(f"Build time ({agg})")
+        plt.ylabel(f"Build time ({agg}) [s]")
     plt.title(f"Scaling comparison")
 
     plt.legend(fontsize=8, ncols=2)
     plt.tight_layout()
+    plt.savefig(f'report/images/{plot_name}.pdf', transparent=None, dpi='figure',
+                format='pdf', bbox_inches='tight')
     plt.show()
 
 
@@ -195,9 +246,9 @@ def process_benchmarks():
             print(f"{t}, {c}")
             m = runtime_matrix(df, t, c, metric="min")
             print(m)
-        plot_scaling(df.filter(pl.col("impl")==c))
-    plot_scaling(df, runtime_x="op_count")
-    plot_scaling(df, runtime_x="footprint")
+        plot_scaling(df.filter(pl.col("impl")==c), agg='mean', plot_name=f"{c}")
+    plot_scaling(df, runtime_x="flops", agg='mean', plot_name='all')
+    # plot_scaling(df, runtime_x="footprint")
 
 
 def process_build_times():
@@ -205,9 +256,17 @@ def process_build_times():
     df = read_build_csv(build_times_file)
     print(df.head())
     print(df.columns)
-    plot_scaling(df, runtime_x="op_count", runtime_y="build_time")
+    df = (
+        df.group_by([
+            "container",
+            "impl",
+            "flops",
+            ]).agg(pl.col("build_time").mean())
+        )
+    plot_scaling(df, runtime_x="flops", runtime_y="build_time",
+                 plot_name="build_times", logy=False)
 
 
 if __name__ == "__main__":
     process_benchmarks()
-    process_build_times()
+    # process_build_times()

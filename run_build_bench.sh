@@ -26,7 +26,7 @@ for file in examples/generated/*.e.cpp; do
 
     echo "Compiling $name"
 
-    for i in {1..10}; do
+    for i in {1..1}; do
         (
             /usr/bin/time \
                 -f "$name,%e,%M" \

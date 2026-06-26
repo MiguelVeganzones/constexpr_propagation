@@ -62,6 +62,9 @@ T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \maketitle
 
 \begin{abstract}
+\end{abstract}
+
+\begin{abstract}
 Modern high-performance computing applications rely on efficient abstractions
 to balance performance and usability.
 This work investigates how increasing compiler visibility through
@@ -90,7 +93,7 @@ ability of the compiler to generate efficient machine code.
 Modern processors are increasingly complex and utilizing them effectively
 requires close collaboration with the compiler.
 The code must expose sufficient information to the compiler so that
-optimizations can be applied.
+optimizations and can be applied.
 However, high-level abstractions often hide structural properties of a program
 until runtime, limiting the transformations available during compilation.
 
@@ -110,7 +113,7 @@ the transformations that the compiler can perform, and the constructs that it
 can be directed into producing.
 
 Compile time values are accessible to the compiler in constexpr contexts, which
-can be used in code generation (embedding literals into assembly immediate
+can be used in code generation (embdedding literals into assembly immediate
 arguments\footnote{For example: \texttt{add eax, 1}. Here the integral literal 1
 has been embedded in source, while \texttt{eax} contains a runtime value stored
 in a register}).
@@ -131,7 +134,7 @@ context.
 This process is irreversible, and defines a flow of information from its source
 to its destination, where it is eventually consumed.
 
-Compile time information can be particularly useful in specific
+Compile time information is can be particularly useful in specific
 applications such as numerical kernels, where the structure of the computation
 often depends on properties such as dimensions, data layout, and iteration
 patterns.
@@ -145,109 +148,20 @@ Please find the source code of this project at
 \href{https://github.com/MiguelVeganzones/constexpr_propagation}{\texttt{constexpr\_propagation}}.
 \footnote{\url{https://github.com/MiguelVeganzones/constexpr_propagation}}
 
-% The effectiveness of compiler optimization is strongly dependent on the amount
-% of information available during compilation. Values and types known at compile
-% time can enable transformations such as constant propagation, loop
-% specialization, unrolling, and more efficient instruction selection. In
-% contrast, information introduced only at runtime requires generalized
-% implementations capable of handling a wider range of inputs, often introducing
-% additional control flow and indirect operations.
-%
-% This distinction is particularly relevant for numerical kernels, where the
-% structure of the computation often depends on properties such as dimensions,
-% data layout, and iteration spaces. Tensor contraction is selected as the
-% reference application in this work because it exposes several independent
-% dimensions of compile-time specialization. Tensor rank, tensor dimensions, and
-% contraction indices can either be represented dynamically or encoded directly
-% into the generated implementation, allowing controlled comparison between
-% different levels of compiler visibility.
-%
-% This work explores how increasing amounts of compile-time information affect
-% both generated machine code and runtime performance. Multiple implementations
-% of the same tensor contraction algorithm are evaluated, ranging from fully
-% runtime-generic approaches to progressively specialized variants. The
-% evaluation focuses on execution time, compilation cost, generated code size,
-% and compiler-generated assembly to quantify the effects of moving information
-% from runtime to compile time.
-%
-% The goal is not to demonstrate that specialization universally outperforms
-% general-purpose implementations, but to characterize when and why exposing
-% additional information to the compiler enables more efficient code generation.
-
-% \section{Introduction}
-% explore how increasing compiler visibility
-% through templates and template metaprogramming techniques affects the
-% performance and generated code quality of numerical kernels.
-%
-% will compare implementations of the same algorithm with various degrees of
-% runtime/compile time information, focusing on runtime, compile time, code size,
-% and constant propagation in the generated assembly.
-%
-% The study will compare runtime-generic implementations against progressively
-% more compile-time-specialized variants.
-%
-% C++ philosophy:
-% The aim is to allow a programmer to work at the highest feasible level of ab-
-% straction by providing
-% - A simple and direct mapping to hardware
-% - Zero-overhead abstraction mechanisms
-%
-% Various forms of user-specified compile-time computation are essential in
-% critical embedded systems applications, much low-level code, and many high-
-% end numerical applications.
-% \cite[p.~6]{stroustrup_foundations_2011}
-%
-% % \href{constexpr_propagation}{https://github.com/MiguelVeganzones/constexpr_propagation}
-% see at \href{https://github.com/MiguelVeganzones/constexpr_propagation}{\texttt{constexpr\_propagation}}
-
 \section{Compile-Time Information}
 
-This section describes how compile-time information can affect code generation
+This section describes how compile time information can affect code generation
 to understand the potential benefits that we aim to quantify in this work.
 
-% Template metaprogramming allows manipulating values and types at compile time.
-% Values in constexpr contexts additionally.
-% Types are very powerful in a statically, strongly typed language
-%
-% This defines a unique direction of the flow of information from its source to
-% its sink, where it is eventually consumed.
-%
-% If a value is ever lowered to the runtime, it cannot be elevated to the runtime
-% at a later stage as the information is lost from the present context and all
-% subsequent contexts.
-%
-
-% The effects of compiler visibility and template metaprogramming are often
-% understood in terms of zero-cost abstractions, but the implication go beyond
-% that, and are describe below.
-
-% Compiler visibility is heavily influenced by dynamic binding.
-% Compile time information must be hard-coded into the source, and it must also be
-% propagated at compile time to be usable in \texttt{constexpr} contexts.
+Comnpute a type at compile time
 
 
-% Comnpute a type at compile time
-
-
-\subsection{Compile-Time Work}
+\subsection{Compile Time Work}
 
 It is often desirable to perform computation at compile time.
 Often we aim to compute values such that they do not need to be recomputed at
 runtime; computing types is also often desirable for type safety and efficient
 type specialization \cite[p.~6]{stroustrup_foundations_2011}.
-
-% 4 Compile-time Computation
-% Sometimes, we prefer a computation be done at compile-time. The reasons
-% vary, for example:
-% • Efficiency: To pre-calculate a value (often a size). For simple cases, that is
-% done by an optimizer. Examples include object and array sizes and table
-% values.
-% • Type-safety: To compute a type at compile time.
-% • Simplify concurrency: you can’t have a race condition on a constant.
-
-% Templates as Type function: template functions generate functions, template classes
-% generate classes
-% \cite[p.~21]{stroustrup_foundations_2011}
 
 \subsubsection{Move computation from runtime to compile time}
 
@@ -263,17 +177,6 @@ an output parameter in matrix multiplication.
 This often happens because work performed behind an API call must be done per
 call, not per caller.
 Moving this computation to the compile time can enable efficient and clean APIs.
-
-% In our case later on, an efficient implemenation may have:
-% f(in A, in B, out C) with a pre-constructed C
-% instead of 
-% C = f(in A, in B)
-
-% (some of the computation may be done repeatedly)
-% API designers, for ease of usability may desire to repeat computation to
-% simplify the callsite
-% As calculating the structure of C would need to be done per call, rather than
-% per caller.
 
 \subsubsection{Compile-Time Complexity}
 
@@ -299,30 +202,16 @@ as automatic loop unrolling and auto-vectorization.
 Code size if affected in various ways by template metaprogramming, most often
 code grows due to template duplication.
 However, templated code can often be simpler and smaller once compiled.
-% - compile time logic to compute values is not preserved in the executable
-% Reduce object sizes
-% - reduced indirections and stuff
-% Hard coding a result may be cheaper than hard coding the procedure to obtain
-% it
-% Increase code size
-% Template deduplication
-% Inlining/unrolling
 
 \subsubsection{Type Simplification}
-The use of templates and compile-time values can allow using types with stronger
+The use of templates and compile time values can allow using types with stronger
 invariants, such as replacing a \texttt{std::vector} with a \texttt{std::array}.
 Properties that are often desirable are \texttt{triviality}, \texttt{standard
 layout}, \texttt{trivial copyability}.
 
-% \subsubsection{Weaker move}
-% Pointer/reference semantics vs value semantics
+\subsubsection{Compile time contracts}
 
-% \subsubsection{constexpr enabling and propagation}
-% Initialization
-
-\subsubsection{Compile-time contracts}
-
-Compile-time computation can be also used to enforce contracts at compile time,
+Compile time computation can be also used to enforce contracts at compile time,
 which is a strong invariant that the runtime cannot provide.
 
 \subsection{Architectural}
@@ -341,7 +230,7 @@ immediates to some extent.
 
 \subsubsection{Reduce function arguments}
 
-Compile-time information or uncertainty determines what regions of the memory
+Compile time information or uncertainty determines what regions of the memory
 model can be used.
 The heap is the least restrictive and can be used at runtime, but with higher
 costs of allocation.
@@ -367,43 +256,8 @@ in-flight or architectural state, but are rather consumed and discarded.
 \subsubsection{Read-only data and coherence protocols}
 Read only data regions (\texttt{.rdata}) are simpler to manage by a multithreaded architecture as
 it promises stronger invariants.
-Race conditions and initialization failures are not an issue for compile-time
+Race conditions and initialization failures are not an issue for compile time
 values.
-
-% \subsection{Memory Regions}
-%
-% \subsubsection{Reduce the need for allocation}
-% The stack is compiler controlled.
-% It is restricted to objects of known size and local-context-determined lifetime.
-% The heap softens these restrictions in exchange for \ac{os} interaction,
-% increased compiler uncertainty and indirections.
-% Lowering values from runtime to compile time may enable the use of more
-% restrictive sets of memory
-%
-% Heap: Free
-% Stack: Known structure, dynamically evaluated
-% Static data: Statically known layout (v2 sizes)
-% Constexpr data: Statically known values (v3 sizes)
-%
-%
-% Only if we ex-
-% plicitly allocate an (unnamed) Point on the free store (the heap), as done for
-% the Point pointed to by p, do we incur memory overhead (and allocation over-
-% head). Such very simple user-defined types are critical to type-rich program-
-% ming and very common
-% \cite[p.~3]{stroustrup_foundations_2011}
-%
-% \subsubsection{Static/Global Data}
-% Increase data size
-% Static constexpr
-%
-% \subsubsection{Increased stack pressure}
-% possible oveflow
-%
-% \subsubsection{Reduce indirections from heap to the stack}
-%
-% Increase compile time complexity
-% If scaling is bad, the compile time interpreter can exhaust resources
 
 \section{Design Space}
 
@@ -423,19 +277,14 @@ implementation strategy.
 
 Tensor contraction has been selected as the reference compute kernel due to its
 relevance in scientific computing workloads, as well as its ability to exploit
-compile-time information.
+compile time information.
 A tensor contraction generalizes matrix multiplication by combining two tensors
 over one or more shared dimensions while preserving the remaining dimensions as
 output dimensions.
 The operation can be expressed as a summation over a set of contraction indices:
 
-
 \[
-C_{\mathbf{i},\mathbf{j}}
-=
-\sum_{\mathbf{k}}
-A_{\mathbf{i},\mathbf{k}}
-B_{\mathbf{k},\mathbf{j}}
+C_{i,j,\dots} = \sum_{k,l,\dots} A_{i,k,\dots}B_{k,j,\dots}
 \]
 
 Unlike fixed-rank linear algebra operations, tensor contractions require
@@ -452,57 +301,9 @@ This makes tensor contraction a suitable benchmark for evaluating the impact
 of compile-time information.
 For this, we consider three variants that are explained below.
 
-% It allows a controlled progression from a fully
-% dynamic implementation, where tensor properties are determined at runtime, to
-% increasingly specialized implementations where tensor rank and dimensions are
-% known during compilation. These changes introduce both qualitative and
-% quantitative differences, ranging from reduced runtime overhead and simpler
-% iteration logic to opportunities for compiler optimizations such as loop
-% unrolling, constant propagation, and improved memory access patterns.
-%
-% The chosen kernel therefore enables evaluation of how a transition from
-% runtime polymorphism to compile-time polymorphism affects generated numerical
-% code performance.
-
-% \section{Compute Kernel}
-%
-% The extent to which compile time information can be exploited effectively is
-% highly application-dependent.
-% In particular, a reference application must be affected in a meaningful way by
-% the absence or presence of this compile time information.
-% Tensor contraction is the algorithm chosen as reference application as there are
-% two clear progression steps that can be exploited both in both the container and
-% algorithm implementations.
-%
-% \cite{hendricks_lessons_2025}
-%
-% The microkernels
-%
-% Compile-time information is and the reference algorithm must be able to
-% effectively exploit it
-%
-% numerical kernels as interesing applications
-%
-% Types - would be pathological to consider it
-% Rank
-% Sizes
-%
-% Tensor contraction 
-%
-% qualitative and quantitative changes
-%
-% dynamnic to compile time polymorphism
-%
-% memory allocation
-% immediate variables
-%
-%
-% v1: not knowing the rank effectively requires a second loop during iteration,
-% effectively a multi-index
-
 \section{Implementation}
 
-We consider three levels of compile-time information that the implementation can
+We consider three levels of compile time information that the implementation can
 exploit in a meaningful way.
 Each level will build on top of the previous one, always elevating information
 from runtime to compile time.
@@ -511,7 +312,7 @@ and \textit{compile-time sizes} (\level{v1}, \level{v2}, \level{v3}
 respectively), according to how the available information affects each
 implementation.
 
-These can be thought of as different specification standards with different
+These can be though of as different specification standards with different
 requirements for compliance.
 
 \subsection{Runtime Rank (\level{v1})}
@@ -626,7 +427,7 @@ contract over, be known at compile time.
 
 This affects the tensor implementation in two major ways.
 For once, the data in the tensor may be stored in the stack, significantly
-improving locality, especially for small tensors.
+improving locality, specially for small tensors.
 Additionally, tensor sizes and strides become part of the type, reducing the
 size of each instance.
 
@@ -760,7 +561,7 @@ Most often, compile time information is exploited to improve performance in
 expenses of flexibility.
 Runtime is, therefore, the most important metric we will analyze in order to
 measure potential gains.
-Whether those gains are justifiable depends on the application and should be
+Wether those gains are justifiable depends on the application and should be
 carefully considered.
 
 The benchmark consists of 63 contractions of tensors of various sizes and ranks.

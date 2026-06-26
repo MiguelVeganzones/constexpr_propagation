@@ -2,6 +2,7 @@ import numpy as np
 import time
 import csv
 import config
+import os
 
 
 OUTPUT_FILE = "results/benchmarking/np_np_results.csv"
@@ -55,6 +56,8 @@ def main():
         all_rows.extend(rows)
         print(f"done {name}")
 
+
+    os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
     with open(OUTPUT_FILE, "w", newline="") as f:
         writer = csv.writer(f)
 
