@@ -195,13 +195,13 @@ The reference kernel is tensor contraction.
 
 The operation is:
 
-\[
+$$
 C_{\mathbf{i},\mathbf{j}}
 =
 \sum_{\mathbf{k}}
 A_{\mathbf{i},\mathbf{k}}
 B_{\mathbf{k},\mathbf{j}}
-\]
+$$
 
 The implementation evaluates how different amounts of compile-time information
 affect generated code and execution efficiency.
