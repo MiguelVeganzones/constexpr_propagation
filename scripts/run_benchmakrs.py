@@ -24,9 +24,10 @@ def run_benchmark(executable: Path, name: str, output: Path):
 
     cmd = [
         str(executable),
-        "--benchmark_repetitions=10",
+        "--benchmark_repetitions=5",
         "--benchmark_format=csv",
         "--benchmark_report_aggregates_only=false",
+        "--benchmark_min_time=1x",
     ]
 
     # Linux CPU pinning equivalent to taskset

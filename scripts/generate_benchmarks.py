@@ -95,9 +95,6 @@ static void BM_tc_{name}_{backend}(benchmark::State& state)
 {{
     using F = float;
 
-    const std::array<F, {a_size}> a_data{{{a_data}}};
-    const std::array<F, {b_size}> b_data{{{b_data}}};
-
     constexpr std::array a_shape{{{a_shape}}};
     constexpr std::array b_shape{{{b_shape}}};
     constexpr std::array cis_data{{{cis}}};
@@ -110,8 +107,8 @@ static void BM_tc_{name}_{backend}(benchmark::State& state)
 
     {construct}
 
-    std::ranges::copy(a_data, a.buffer().begin());
-    std::ranges::copy(b_data, b.buffer().begin());
+    std::ranges::fill(a.buffer(), F{{1}});
+    std::ranges::fill(b.buffer(), F{{1}});
 
     for (auto _ : state)
     {{
@@ -142,9 +139,9 @@ class Case:
     name: str
     a_shape: Tuple[int, ...]
     b_shape: Tuple[int, ...]
+    a_size: int
+    b_size: int
     cis: List[Tuple[int, int]]
-    a: np.ndarray
-    b: np.ndarray
 
 
 # =========================================================
@@ -173,20 +170,14 @@ def get_snippet(tensor_impl, contraction_impl):
 def generate_cases():
     cases = []
 
-    def make_tensor(shape):
-        return np.arange(np.prod(shape), dtype=np.float32).reshape(shape)
-
     def add(name, a_shape, b_shape, cis):
-        a = make_tensor(a_shape)
-        b = make_tensor(b_shape)
-
         cases.append(Case(
             name=name,
             a_shape=a_shape,
             b_shape=b_shape,
+            a_size=np.prod(a_shape),
+            b_size=np.prod(b_shape),
             cis=cis,
-            a=a,
-            b=b
         ))
 
     for name, size_a, size_b, cis in config.samples:
@@ -258,9 +249,6 @@ def contraction_flops(shapeA, shapeB, pairs):
 # =========================================================
 
 def render(case, backend_name, snippet):
-    a = ", ".join(f"{x}f" for x in case.a.flatten())
-    b = ", ".join(f"{x}f" for x in case.b.flatten())
-
     a_shape = ", ".join(f"{x}uz" for x in case.a_shape)
     b_shape = ", ".join(f"{x}uz" for x in case.b_shape)
 
@@ -272,10 +260,6 @@ def render(case, backend_name, snippet):
     return BENCHMARK_TEMPLATE.format(
         backend=backend_name.upper(),
         name=case.name,
-        a_data=a,
-        b_data=b,
-        a_size=len(case.a.flatten()),
-        b_size=len(case.b.flatten()),
         a_shape=a_shape,
         b_shape=b_shape,
         cis=cis,

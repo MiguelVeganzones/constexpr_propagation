@@ -21,9 +21,10 @@ run_bench () {
     echo "Running $name..."
 
     taskset -c 0 "$exe" \
-        --benchmark_repetitions=10 \
+        --benchmark_repetitions=5 \
         --benchmark_format=csv \
         --benchmark_report_aggregates_only=false \
+        --benchmark_min_time=1x \
         > "${OUT_DIR}/${name}_results.csv"
 }
 

@@ -93,9 +93,6 @@ static auto E_tc_{name}_{backend}() -> void
 {{
     using F = float;
 
-    const std::array<F, {a_size}> a_data{{{a_data}}};
-    const std::array<F, {b_size}> b_data{{{b_data}}};
-
     constexpr std::array a_shape{{{a_shape}}};
     constexpr std::array b_shape{{{b_shape}}};
     constexpr std::array cis_data{{{cis}}};
@@ -108,8 +105,8 @@ static auto E_tc_{name}_{backend}() -> void
 
     {construct}
 
-    std::ranges::copy(a_data, a.buffer().begin());
-    std::ranges::copy(b_data, b.buffer().begin());
+    std::ranges::fill(a.buffer(), F{{1}});
+    std::ranges::fill(b.buffer(), F{{1}});
 
     {contraction};
     asm volatile ("" ::: "memory");
@@ -136,9 +133,9 @@ class Case:
     name: str
     a_shape: Tuple[int, ...]
     b_shape: Tuple[int, ...]
+    a_size: int
+    b_size: int
     cis: List[Tuple[int, int]]
-    a: np.ndarray
-    b: np.ndarray
 
 
 # =========================================================
@@ -177,9 +174,9 @@ def generate_cases():
             name=name,
             a_shape=a_shape,
             b_shape=b_shape,
-            cis=cis,
-            a=a,
-            b=b
+            a_size=np.prod(a_shape),
+            b_size=np.prod(b_shape),
+            cis=cis
         ))
 
     for name, size_a, size_b, cis in config.samples:
@@ -193,9 +190,6 @@ def generate_cases():
 # =========================================================
 
 def render(case, backend_name, snippet):
-    a = ", ".join(f"{x}f" for x in case.a.flatten())
-    b = ", ".join(f"{x}f" for x in case.b.flatten())
-
     a_shape = ", ".join(f"{x}uz" for x in case.a_shape)
     b_shape = ", ".join(f"{x}uz" for x in case.b_shape)
 
@@ -207,10 +201,8 @@ def render(case, backend_name, snippet):
     return EXAMPLE_TEMPLATE.format(
         backend=backend_name.upper(),
         name=case.name,
-        a_data=a,
-        b_data=b,
-        a_size=len(case.a.flatten()),
-        b_size=len(case.b.flatten()),
+        a_size=case.a_size,
+        b_size=case.b_size,
         a_shape=a_shape,
         b_shape=b_shape,
         cis=cis,
