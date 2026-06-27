@@ -11,6 +11,7 @@ set(COMMON_FLAGS
 )
 
 set(WARNINGS
+    -fbounds-check
     -fvisibility=hidden
     -pedantic
     -Wall

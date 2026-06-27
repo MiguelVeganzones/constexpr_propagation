@@ -11,6 +11,12 @@ The main case study is tensor contraction, where tensor properties such as
 rank, dimensions, and contraction indices are progressively moved from runtime
 to compile time.
 
+## Warning
+
+This project makes extensive use of the `constexpr` capabilities of the compiler.
+Only modern compilers are supported.
+`gcc-16.1.1` and `clang-22.1.6` have been explicitly tested.
+
 ## Motivation
 
 Modern high-performance applications rely on efficient machine code generation
@@ -84,7 +90,7 @@ Tensor sizes and contraction structure are known at compile time.
 ├── plotting/
 ├── report/
 │   └── report.pdf
-├── python/
+├── scripts/
 │   ├── config.py
 │   ├── generate_benchmarks.py
 │   ├── generate_examples.py
@@ -128,12 +134,16 @@ Tensor sizes and contraction structure are known at compile time.
 
 ### CMake presets
 
+Cross platform option
+
 ```bash
 cmake --preset <preset>
 cmake --build --preset <preset>
 ```
 
 ### Makefile driver
+
+Linux convenience driver
 
 Generate benchmark files
 ```bash
@@ -179,14 +189,24 @@ ctest --test-dir build/<preset>/tests
 
 Generate and run benchmarks:
 
+### Cross platform driver
+
+```bash
+python scripts/run_benchmakrs.py <preset>
+python scripts/run_build_benchmarks.py
+python scripts/run_reference_benchmarks.py
+```
+
+### Linux convenience driver
+
 ```bash
 make run-<preset>
 ```
 
-Run benchmarks:
+Or just run benchmarks:
 
 ```bash
-./run_benchmarks.sh
+./run_benchmarks.sh <preset>
 ```
 
 ## Benchmark Kernel

@@ -13,16 +13,16 @@ PRESETS := \
 	clang-release \
 
 GENERATE_DEPS := \
-	python/config.py \
-	python/generate_tests.py \
-	python/generate_benchmarks.py \
-	$(wildcard python/*.py)
+	scripts/config.py \
+	scripts/generate_tests.py \
+	scripts/generate_benchmarks.py \
+	$(wildcard scripts/*.py)
 
 GENERATE_STAMP := tests/generated/.stamp
 
 $(GENERATE_STAMP): $(GENERATE_DEPS)
-	$(PYTHON) python/generate_tests.py
-	$(PYTHON) python/generate_benchmarks.py
+	$(PYTHON) scripts/generate_tests.py
+	$(PYTHON) scripts/generate_benchmarks.py
 	touch $@
 
 generate: $(GENERATE_STAMP)
@@ -37,8 +37,8 @@ test-%: build-%
 	ctest --test-dir build/$*/tests
 
 run-%: test-%
-	python python/run_reference_benchmarks.py
-	sh run_benchmarks.sh
+	python scripts/run_reference_benchmarks.py
+	sh run_benchmarks.sh $*
 
 ALL_CONFIGS := $(addprefix configure-,$(PRESETS))
 ALL_BUILDS := $(addprefix build-,$(PRESETS))

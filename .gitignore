@@ -102,3 +102,7 @@ Testing/
 *.pdfsync
 *.rubbercache
 rubber.cache
+
+## Python
+__pycache__/
+venv/

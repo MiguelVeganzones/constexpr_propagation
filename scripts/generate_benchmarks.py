@@ -95,8 +95,8 @@ static void BM_tc_{name}_{backend}(benchmark::State& state)
 {{
     using F = float;
 
-    constexpr std::array a_data{{{a_data}}};
-    constexpr std::array b_data{{{b_data}}};
+    const std::array<F, {a_size}> a_data{{{a_data}}};
+    const std::array<F, {b_size}> b_data{{{b_data}}};
 
     constexpr std::array a_shape{{{a_shape}}};
     constexpr std::array b_shape{{{b_shape}}};
@@ -274,6 +274,8 @@ def render(case, backend_name, snippet):
         name=case.name,
         a_data=a,
         b_data=b,
+        a_size=len(case.a.flatten()),
+        b_size=len(case.b.flatten()),
         a_shape=a_shape,
         b_shape=b_shape,
         cis=cis,

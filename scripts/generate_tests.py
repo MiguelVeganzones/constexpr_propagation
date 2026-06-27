@@ -45,9 +45,9 @@ TEST({backend}, {name})
 {{
     using F = float;
 
-    constexpr std::array a_data{{{a_data}}};
-    constexpr std::array b_data{{{b_data}}};
-    constexpr std::array e_data{{{e_data}}};
+    const std::array<F, {a_size}> a_data{{{a_data}}};
+    const std::array<F, {b_size}> b_data{{{b_data}}};
+    const std::array<F, {e_size}> e_data{{{e_data}}};
 
     constexpr std::array a_shape{{{a_shape}}};
     constexpr std::array b_shape{{{b_shape}}};
@@ -201,6 +201,9 @@ def render(case, backend):
         a_data=a,
         b_data=b,
         e_data=e,
+        a_size=len(case.a.flatten()),
+        b_size=len(case.b.flatten()),
+        e_size=len(case.expected.flatten()),
         a_shape=a_shape,
         b_shape=b_shape,
         cis=cis,

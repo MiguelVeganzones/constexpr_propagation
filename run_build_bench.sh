@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # regenerate examples
-venv/bin/python python/generate_examples.py
+venv/bin/python scripts/generate_examples.py
 
 # prepare output dirs
 mkdir -p tmp_build

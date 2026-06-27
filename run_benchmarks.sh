@@ -2,7 +2,14 @@
 
 set -euo pipefail
 
-BIN="./build/gcc-release/bin/benchmarks"
+preset="$1"
+
+if [ -z "$preset" ]; then
+    echo "Usage: $0 <preset>"
+    exit 1
+fi
+
+BIN="./build/$preset/bin/benchmarks"
 OUT_DIR="results/benchmarking"
 
 mkdir -p "$OUT_DIR"
