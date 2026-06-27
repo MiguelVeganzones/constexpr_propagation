@@ -269,4 +269,4 @@ def process_build_times():
 
 if __name__ == "__main__":
     process_benchmarks()
-    # process_build_times()
+   process_build_times()

@@ -122,6 +122,14 @@ Tensor sizes and contraction structure are known at compile time.
 
 ## Building
 
+### Setup python environment
+
+```bash
+python -m venv ./venv
+source venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
 ### Available presets:
 ```text
 	gcc-debug
