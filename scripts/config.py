@@ -7,8 +7,18 @@ from typing import Tuple, List
 # LIMITS
 # =========================================================
 
-MAX_FLOPS = 10**13
-MAX_MEMORY = 2**24
+MAX_FLOPS = 10**15
+MAX_MEMORY = 2**28
+
+SIZES = [
+    [2, 4, 8, 16, 32, 64, 128, 256],
+    [3, 7, 15, 31, 63, 127, 255],
+]
+
+RANKS = [
+    [2, 3, 4, 5, 6, 7, 8, 16, 32, 64],
+    [3, 4, 5, 6, 13, 19],
+]
 
 
 # =========================================================
@@ -193,17 +203,7 @@ def make_case(
 def make_samples():
     cases = []
 
-    sizes = [
-        [2,4,8,16,32,64],
-        [3,7,15,31,63],
-    ]
-
-    ranks = [
-        [2,3,4,5,6,7,8],
-        [3,4,5,6],
-    ]
-
-    for size_set, rank_set in zip(sizes, ranks):
+    for size_set, rank_set in zip(SIZES, RANKS):
 
         for rank in rank_set:
             for n in size_set:
