@@ -44,7 +44,6 @@ set(DIAGNOSTICS
 	-fdiagnostics-path-format=inline-events
 	-fdiagnostics-show-caret
 	-fdiagnostics-show-template-tree
-    -ftime-report
 )
 
 set(DEBUG_INFO
@@ -55,6 +54,7 @@ set(DEBUG_INFO
 	-gvariable-location-views
 	-ginline-points
 	-gstatement-frontiers
+    -ftime-report
 )
 
 set(DEBUG_FLAGS
@@ -73,6 +73,7 @@ set(RELEASE_FLAGS
 	-fstrength-reduce
 	-O3
     -flto
+	-fomit-frame-pointer
 )
 
 set(RELWITHDEBINFO_FLAGS

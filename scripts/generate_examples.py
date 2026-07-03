@@ -125,20 +125,6 @@ COMBINATIONS = [
 ]
 
 # =========================================================
-# CASE MODEL
-# =========================================================
-
-@dataclass
-class Case:
-    name: str
-    a_shape: Tuple[int, ...]
-    b_shape: Tuple[int, ...]
-    a_size: int
-    b_size: int
-    cis: List[Tuple[int, int]]
-
-
-# =========================================================
 # CASE GENERATION
 # =========================================================
 
@@ -170,17 +156,15 @@ def generate_cases():
         a = make_tensor(a_shape)
         b = make_tensor(b_shape)
 
-        cases.append(Case(
+        cases.append(config.Case(
             name=name,
             a_shape=a_shape,
             b_shape=b_shape,
-            a_size=np.prod(a_shape),
-            b_size=np.prod(b_shape),
             cis=cis
         ))
 
-    for name, size_a, size_b, cis in config.samples:
-        add(name, size_a, size_b, cis)
+    for s in config.samples:
+        add(s.name, s.a_size, s.b_size, s.cis)
 
     return cases
 

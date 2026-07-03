@@ -22,8 +22,6 @@ def read_build_csv(path: pathlib.Path) -> pl.DataFrame:
             container=pl.col("name").str.extract(PATTERN, 1).cast(pl.String),
             impl=pl.col("name").str.extract(PATTERN, 2).cast(pl.String),
             name=pl.col("name").str.extract(PATTERN, 3).cast(pl.String),
-            # size=pl.col("name").str.extract(PATTERN, 4).cast(pl.Int32),
-            # order=pl.col("name").str.extract(PATTERN, 5).cast(pl.Int32),
             build_time=pl.col("build_time").cast(pl.Float32),
         )
     )
@@ -161,7 +159,6 @@ def plot_scaling(
         for i, (impl, container) in enumerate(combos)
     }
 
-
     plt.figure(figsize=(6,4))
     for (impl, container), sub in pdf.groupby(["impl", "container"]):
         sub = sub.sort_values(runtime_x)
@@ -269,4 +266,4 @@ def process_build_times():
 
 if __name__ == "__main__":
     process_benchmarks()
-   process_build_times()
+    process_build_times()

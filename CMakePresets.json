@@ -40,8 +40,7 @@
             "inherits": "clang-base",
             "binaryDir": "build/clang-debug",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=lld"
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
@@ -49,8 +48,7 @@
             "inherits": "clang-base",
             "binaryDir": "build/clang-relwdebinfo",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=lld"
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
             }
         },
         {
@@ -58,8 +56,7 @@
             "inherits": "clang-base",
             "binaryDir": "build/clang-release",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=lld"
+                "CMAKE_BUILD_TYPE": "Release"
             }
         }
     ],
@@ -69,7 +66,7 @@
             "name": "build-base",
             "hidden": true,
             "jobs": 16,
-            "verbose": true
+            "verbose": false
         },
         {
             "name": "gcc-debug",

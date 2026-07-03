@@ -12,8 +12,8 @@ WARMUP = 3
 
 def run_case(name, a_shape, b_shape, cis):
     # deterministic data (same as your C++ pattern style)
-    a = np.arange(np.prod(a_shape), dtype=np.float32).reshape(a_shape)
-    b = np.arange(np.prod(b_shape), dtype=np.float32).reshape(b_shape)
+    a = np.ones(np.prod(a_shape), dtype=np.float32).reshape(a_shape)
+    b = np.ones(np.prod(b_shape), dtype=np.float32).reshape(b_shape)
 
     axes_a = [i for i, _ in cis]
     axes_b = [j for _, j in cis]
@@ -34,7 +34,7 @@ def run_case(name, a_shape, b_shape, cis):
         # mimic google benchmark CSV schema
         rows.append([
             f"BM_tc_{name}_np_np",
-            1,                  # iterations (logical single op)
+            REPEATS,           # iterations (logical single op)
             real_time_ns,
             real_time_ns,      # cpu_time ~ real_time for NumPy
             "ns",
@@ -51,10 +51,10 @@ def run_case(name, a_shape, b_shape, cis):
 def main():
     all_rows = []
 
-    for name, a_shape, b_shape, cis in config.samples:
-        rows = run_case(name, a_shape, b_shape, cis)
+    for s in config.samples:
+        print(f"running {s.name}: {s.memory_mb:.2f} MB, {s.flops} ops")
+        rows = run_case(s.name, s.a_shape, s.b_shape, s.cis)
         all_rows.extend(rows)
-        print(f"done {name}")
 
 
     os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)

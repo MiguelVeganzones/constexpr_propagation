@@ -120,6 +120,11 @@ Tensor sizes and contraction structure are known at compile time.
 - Google Benchmark
 - Google Test
 
+## Config
+
+The maximum size and FLOP count of the examples and benchamrks can be configured
+in `./scripts/config.py` using the variables `MAX_FLOPS` and `MAX_MEMORY`.
+
 ## Building
 
 ### Setup python environment
@@ -177,7 +182,6 @@ Run benchmarks, depends on `test-<preset>`
 ```bash
 make run-<preset>
 ```
-
 
 ## Running Tests
 

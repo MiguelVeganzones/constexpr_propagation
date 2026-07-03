@@ -1,81 +1,309 @@
+from dataclasses import dataclass
+from math import prod
+from typing import Tuple, List
 
-samples = [
-    ["2r2s1o",       (2,  2),  (2,  2),  [(0, 0)]],
-    ["2r4s1o",       (4,  4),  (4,  4),  [(0, 0)]],
-    ["2r8s1o",       (8,  8),  (8,  8),  [(0, 0)]],
-    ["2r16s1o",      (16, 16), (16, 16), [(0, 0)]],
-    ["2r32s1o",      (32, 32), (32, 32), [(0, 0)]],
-    ["2r64s1o",      (64, 64), (64, 64), [(0, 0)]],
 
-    ["3r2s1o",       (2,  2,   2),  (2,  2,   2),   [(0, 0)]],
-    ["3r4s1o",       (4,  4,   4),  (4,  4,   4),   [(0, 0)]],
-    ["3r8s1o",       (8,  8,   8),  (8,  8,   8),   [(0, 0)]],
-    ["3r16s1o",      (16, 16,  16), (16, 16,  16),  [(0, 0)]],
-    ["3r32s1o",      (32, 32,  32), (32, 32,  32),  [(0, 0)]],
+# =========================================================
+# LIMITS
+# =========================================================
 
-    ["3r2s2o",       (2,  2,   2),  (2,  2,   2),   [(0, 0),   (1,  1)]],
-    ["3r4s2o",       (4,  4,   4),  (4,  4,   4),   [(0, 0),   (1,  1)]],
-    ["3r8s2o",       (8,  8,   8),  (8,  8,   8),   [(0, 0),   (1,  1)]],
-    ["3r16s2o",      (16, 16,  16), (16, 16,  16),  [(0, 0),   (1,  1)]],
-    ["3r32s2o",      (32, 32,  32), (32, 32,  32),  [(0, 0),   (1,  1)]],
+MAX_FLOPS = 10**13
+MAX_MEMORY = 2**24
 
-    ["4r2s1o",       (2,  2,   2,   2),  (2,  2,    2,   2),   [(0, 0)]],
-    ["4r4s1o",       (4,  4,   4,   4),  (4,  4,    4,   4),   [(0, 0)]],
-    ["4r8s1o",       (8,  8,   8,   8),  (8,  8,    8,   8),   [(0, 0)]],
-    ["4r16s1o",      (16, 16,  16,  16), (16, 16,   16,  16),  [(0, 0)]],
 
-    ["4r2s2o",       (2,  2,   2,   2),  (2,  2,    2,   2),   [(0, 0),   (1,  1)]],
-    ["4r4s2o",       (4,  4,   4,   4),  (4,  4,    4,   4),   [(0, 0),   (1,  1)]],
-    ["4r8s2o",       (8,  8,   8,   8),  (8,  8,    8,   8),   [(0, 0),   (1,  1)]],
-    ["4r16s2o",      (16, 16,  16,  16), (16, 16,   16,  16),  [(0, 0),   (1,  1)]],
+# =========================================================
+# CASE MODEL
+# =========================================================
 
-    ["4r2s3o",       (2,  2,   2,   2),  (2,  2,    2,   2),   [(0, 0),   (1,  1),   (2,  2)]],
-    ["4r4s3o",       (4,  4,   4,   4),  (4,  4,    4,   4),   [(0, 0),   (1,  1),   (2,  2)]],
-    ["4r8s3o",       (8,  8,   8,   8),  (8,  8,    8,   8),   [(0, 0),   (1,  1),   (2,  2)]],
-    ["4r16s3o",      (16, 16,  16,  16), (16, 16,   16,  16),  [(0, 0),   (1,  1),   (2,  2)]],
+@dataclass(frozen=True)
+class Case:
+    name: str
+    a_shape: Tuple[int, ...]
+    b_shape: Tuple[int, ...]
+    cis: Tuple[Tuple[int, int], ...]
+    dtype_bytes: int = 4   # float32
 
-    ["5r2s1o",       (2,  2,   2,   2,   2),  (2,   2,   2,    2,   2),   [(0, 0)]],
-    ["5r3s1o",       (3,  3,   3,   3,   3),  (3,   3,   3,    3,   3),   [(0, 0)]],
-    ["5r4s1o",       (4,  4,   4,   4,   4),  (4,   4,   4,    4,   4),   [(0, 0)]],
-    ["5r8s1o",       (8,  8,   8,   8,   8),  (8,   8,   8,    8,   8),   [(0, 0)]],
-    ["5r16s1o",      (16, 16,  16,  16,  16), (16,  16,  16,   16,  16),  [(0, 0)]],
+    @property
+    def a_size(self):
+        return prod(self.a_shape)
 
-    ["5r2s2o",       (2,  2,   2,   2,   2),  (2,   2,   2,    2,   2),   [(0, 0),   (1,  1)]],
-    ["5r3s2o",       (3,  3,   3,   3,   3),  (3,   3,   3,    3,   3),   [(0, 0),   (1,  1)]],
-    ["5r4s2o",       (4,  4,   4,   4,   4),  (4,   4,   4,    4,   4),   [(0, 0),   (1,  1)]],
-    ["5r8s2o",       (8,  8,   8,   8,   8),  (8,   8,   8,    8,   8),   [(0, 0),   (1,  1)]],
+    @property
+    def b_size(self):
+        return prod(self.b_shape)
 
-    ["5r2s3o",       (2,  2,   2,   2,   2),  (2,   2,   2,    2,   2),   [(0, 0),   (1,  1),   (2, 2)]],
-    ["5r3s3o",       (3,  3,   3,   3,   3),  (3,   3,   3,    3,   3),   [(0, 0),   (1,  1),   (2, 2)]],
-    ["5r4s3o",       (4,  4,   4,   4,   4),  (4,   4,   4,    4,   4),   [(0, 0),   (1,  1),   (2, 2)]],
-    ["5r8s3o",       (8,  8,   8,   8,   8),  (8,   8,   8,    8,   8),   [(0, 0),   (1,  1),   (2, 2)]],
+    @property
+    def output_shape(self):
+        contracted_a = {
+            i for i, _ in self.cis
+        }
+        contracted_b = {
+            j for _, j in self.cis
+        }
+        return (
+            tuple(
+                self.a_shape[i]
+                for i in range(len(self.a_shape))
+                if i not in contracted_a
+            )
+            +
+            tuple(
+                self.b_shape[j]
+                for j in range(len(self.b_shape))
+                if j not in contracted_b
+            )
+        )
 
-    ["5r2s4o",       (2,  2,   2,   2,   2),  (2,   2,   2,    2,   2),   [(0, 0),   (1,  1),   (2, 2),   (3, 3)]],
-    ["5r3s4o",       (3,  3,   3,   3,   3),  (3,   3,   3,    3,   3),   [(0, 0),   (1,  1),   (2, 2),   (3, 3)]],
-    ["5r4s4o",       (4,  4,   4,   4,   4),  (4,   4,   4,    4,   4),   [(0, 0),   (1,  1),   (2, 2),   (3, 3)]],
-    ["5r8s4o",       (8,  8,   8,   8,   8),  (8,   8,   8,    8,   8),   [(0, 0),   (1,  1),   (2, 2),   (3, 3)]],
+    @property
+    def output_size(self):
+        return prod(self.output_shape)
 
-    ["6r2s1o",       (2,  2,   2,   2,   2,   2),   (2,  2,    2,   2,    2,   2),   [(0, 0)]],
-    ["6r3s1o",       (3,  3,   3,   3,   3,   3),   (3,  3,    3,   3,    3,   3),   [(0, 0)]],
-    ["6r4s1o",       (4,  4,   4,   4,   4,   4),   (4,  4,    4,   4,    4,   4),   [(0, 0)]],
-    ["6r5s1o",       (5,  5,   5,   5,   5,   5),   (5,  5,    5,   5,    5,   5),   [(0, 0)]],
+    @property
+    def reduction_size(self):
+        return prod(
+            self.a_shape[i]
+            for i, _ in self.cis
+        )
 
-    ["6r2s2o",       (2,  2,   2,   2,   2,   2),   (2,  2,    2,   2,    2,   2),   [(0, 0),   (1, 1)]],
-    ["6r3s2o",       (3,  3,   3,   3,   3,   3),   (3,  3,    3,   3,    3,   3),   [(0, 0),   (1, 1)]],
-    ["6r4s2o",       (4,  4,   4,   4,   4,   4),   (4,  4,    4,   4,    4,   4),   [(0, 0),   (1, 1)]],
-    ["6r5s2o",       (5,  5,   5,   5,   5,   5),   (5,  5,    5,   5,    5,   5),   [(0, 0),   (1, 1)]],
+    @property
+    def flops(self):
+        multiplies = (
+            self.output_size *
+            self.reduction_size
+        )
+        # multiply + accumulate
+        return 2 * multiplies
 
-    ["6r2s3o",       (2,  2,   2,   2,   2,   2),   (2,  2,    2,   2,    2,   2),   [(0, 0),   (1, 1),   (2, 2)]],
-    ["6r3s3o",       (3,  3,   3,   3,   3,   3),   (3,  3,    3,   3,    3,   3),   [(0, 0),   (1, 1),   (2, 2)]],
-    ["6r4s3o",       (4,  4,   4,   4,   4,   4),   (4,  4,    4,   4,    4,   4),   [(0, 0),   (1, 1),   (2, 2)]],
-    ["6r5s3o",       (5,  5,   5,   5,   5,   5),   (5,  5,    5,   5,    5,   5),   [(0, 0),   (1, 1),   (2, 2)]],
+    @property
+    def memory_bytes(self):
+        a_bytes = (
+            self.a_size *
+            self.dtype_bytes
+        )
+        b_bytes = (
+            self.b_size *
+            self.dtype_bytes
+        )
+        c_bytes = (
+            self.output_size *
+            self.dtype_bytes
+        )
+        return (
+            a_bytes +
+            b_bytes +
+            c_bytes
+        )
 
-    # Misc
-    ["3r2s1orect",   (2,  4,   8),  (8,  4,   2),   [(0, 2)]],
-    ["5r4s1ostride", (4,  8,   2,   8,   4),  (4,   8,   2,    8,   4),   [(0, 4),   (1,  3)]],
-    ["6r4s2ostride", (2,  4,   8,   2,   4,   8),   (8,  4,    2,   8,    4,   2),   [(0, 5),   (1, 4)]],
-    ["4r2s2omixed",  (2,  4,   2,   4),  (4,  2,    4,   2),   [(0, 1),   (2,  3)]],
-    ["4r8s1operm",   (8,  8,   8,   8),  (8,  8,    8,   8),   [(3, 3)]],
-    ["4r8s1operm2",  (8,  8,   8,   8),  (8,  8,    8,   8),   [(1, 1)]],
-    ["5r4s2operm",   (4,  4,   4,   4,   4),  (4,   4,   4,    4,   4),   [(3, 3),   (1,  1)]],
-]
+    @property
+    def memory_mb(self):
+        return (
+            self.memory_bytes /
+            (1024**2)
+        )
+
+    def __post_init__(self):
+
+        if not isinstance(self.a_shape, tuple):
+            raise TypeError(
+                f"a_shape must be tuple, got {self.a_shape}"
+            )
+
+        if not isinstance(self.b_shape, tuple):
+            raise TypeError(
+                f"b_shape must be tuple, got {self.b_shape}"
+            )
+
+
+# =========================================================
+# MEMORY
+# =========================================================
+
+def tensor_memory(
+    shape,
+    dtype_bytes=4
+):
+    return prod(shape) * dtype_bytes
+
+
+def case_memory(
+    case: Case,
+    dtype_bytes=4
+):
+    a = tensor_memory(
+        case.a_shape,
+        dtype_bytes
+    )
+    b = tensor_memory(
+        case.b_shape,
+        dtype_bytes
+    )
+    c = tensor_memory(
+        case.output_shape,
+        dtype_bytes
+    )
+    return {
+        "a_bytes": a,
+        "b_bytes": b,
+        "c_bytes": c,
+        "total_bytes": a+b+c,
+    }
+
+
+# =========================================================
+# FLOPS
+# =========================================================
+
+def contraction_flops(case: Case):
+    reduction_size = prod(
+        case.a_shape[i]
+        for i, _ in case.cis
+    )
+    output_size = prod(
+        case.output_shape
+    )
+    multiplies = (
+        output_size *
+        reduction_size
+    )
+    return 2 * multiplies
+
+
+
+# =========================================================
+# CASE CREATION
+# =========================================================
+
+def make_case(
+    name,
+    a_shape,
+    b_shape,
+    cis
+):
+    return Case(
+        name=name,
+        a_shape=tuple(a_shape),
+        b_shape=tuple(b_shape),
+        cis=tuple(cis),
+    )
+
+
+# =========================================================
+# GENERATION
+# =========================================================
+
+def make_samples():
+    cases = []
+
+    sizes = [
+        [2,4,8,16,32,64],
+        [3,7,15,31,63],
+    ]
+
+    ranks = [
+        [2,3,4,5,6,7,8],
+        [3,4,5,6],
+    ]
+
+    for size_set, rank_set in zip(sizes, ranks):
+
+        for rank in rank_set:
+            for n in size_set:
+
+                a = (n,) * rank
+                b = (n,) * rank
+
+                if rank < 5:
+                    cases.append(
+                        make_case(
+                            f"{rank}r{n}s1o",
+                            a,
+                            b,
+                            ((0,0),)
+                        )
+                    )
+
+                if 3 < rank < 7:
+                    order = rank // 2
+                    cases.append(
+                        make_case(
+                            f"{rank}r{n}s{order}o",
+                            a,
+                            b,
+                            tuple((i,i) for i in range(order))
+                        )
+                    )
+
+                if rank > 5:
+                    order = rank - 1
+                    cases.append(
+                        make_case(
+                            f"{rank}r{n}s{order}o",
+                            a,
+                            b,
+                            tuple((i,i) for i in range(order))
+                        )
+                    )
+
+    rect_cases = [
+        ("rect0", (64,32,16), (16,32,64), ((2,0),)),
+        ("rect1", (128,32,8), (8,32,128), ((2,0),)),
+        ("rect2", (256,64,16), (16,64,256), ((2,0),)),
+        ("rect3", (32,64,128,16), (16,128,64,32), ((3,0),(2,1))),
+    ]
+
+    for name, a, b, cis in rect_cases:
+        cases.append(make_case(name, a, b, cis))
+
+    return cases
+
+
+# =========================================================
+# FILTER
+# =========================================================
+
+def filter_cases(cases):
+    unique = set()
+    result = []
+    max_flops = 0
+    max_memory = 0
+
+    for case in cases:
+        if (
+            case.name not in unique
+            and
+            case.flops <= MAX_FLOPS
+            and
+            case.memory_bytes <= MAX_MEMORY
+        ):
+            unique.add(case.name)
+            result.append(case)
+            max_flops = max(
+                    max_flops,
+                    case.flops
+                    )
+            max_memory = max(
+                    max_memory,
+                    case.memory_bytes
+                    )
+            # print(
+            #     case.name,
+            #     case.a_shape,
+            #     case.b_shape,
+            #     case.cis,
+            #     {
+            #         "memory MB": case.memory_mb,
+            #         "flops": case.flops,
+            #     }
+            # )
+    print(f"{len(cases)} cases")
+    print( f"max memory: {max_memory / 1024**3:.2f} GB")
+    print( f"max flops: {max_flops:.3e}")
+    return result
+
+
+# =========================================================
+# RUN
+# =========================================================
+
+samples = filter_cases(
+    make_samples()
+)

@@ -39,12 +39,12 @@ set(WARNINGS
 set(DIAGNOSTICS
 	-fdiagnostics-color=auto
 	-fdiagnostics-show-template-tree
-    -ftime-report
 )
 
 set(DEBUG_INFO
 	-fno-omit-frame-pointer
 	-ggdb3
+    -ftime-report
 )
 
 set(DEBUG_FLAGS
@@ -59,6 +59,7 @@ set(RELEASE_FLAGS
 	-fno-trapping-math
 	-O3
     -flto
+	-fomit-frame-pointer
 )
 
 set(RELWITHDEBINFO_FLAGS

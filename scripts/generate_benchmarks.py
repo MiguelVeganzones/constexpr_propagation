@@ -16,6 +16,7 @@ TENSOR_IMPLS = {
         "includes": """
 #include "tensor/v1/tensor.hpp"
 #include "tensor/v1/utils.hpp"
+#include <iostream>
 """,
         "type_defs": """
 using a_t = v1::tensor<F>;
@@ -33,6 +34,7 @@ auto c = v1::utils::types::allocate_output_uninitialized(a, b, cis);
         "includes": """
 #include "tensor/v2/tensor.hpp"
 #include "tensor/v2/utils.hpp"
+#include <iostream>
 """,
         "type_defs": """
 using a_t = v2::tensor<F, a_rank>;
@@ -52,6 +54,7 @@ auto c = v2::utils::types::allocate_output_uninitialized(a, b, cis);
 #include "tensor/v3/static_shape.hpp"
 #include "tensor/v3/tensor.hpp"
 #include "tensor/v3/utils.hpp"
+#include <iostream>
 """,
         "type_defs": """
 using a_t = v3::tensor<
@@ -110,6 +113,8 @@ static void BM_tc_{name}_{backend}(benchmark::State& state)
     std::ranges::fill(a.buffer(), F{{1}});
     std::ranges::fill(b.buffer(), F{{1}});
 
+    std::cerr << "Running {name}_{backend} [{memory} MB]\\n";
+
     for (auto _ : state)
     {{
         {contraction};
@@ -129,20 +134,6 @@ COMBINATIONS = [
     ("t3", "c2"),
     ("t3", "c3"),
 ]
-
-# =========================================================
-# CASE MODEL
-# =========================================================
-
-@dataclass
-class Case:
-    name: str
-    a_shape: Tuple[int, ...]
-    b_shape: Tuple[int, ...]
-    a_size: int
-    b_size: int
-    cis: List[Tuple[int, int]]
-
 
 # =========================================================
 # CASE GENERATION
@@ -167,23 +158,6 @@ def get_snippet(tensor_impl, contraction_impl):
         "contraction": contraction["call"]
     }
 
-def generate_cases():
-    cases = []
-
-    def add(name, a_shape, b_shape, cis):
-        cases.append(Case(
-            name=name,
-            a_shape=a_shape,
-            b_shape=b_shape,
-            a_size=np.prod(a_shape),
-            b_size=np.prod(b_shape),
-            cis=cis,
-        ))
-
-    for name, size_a, size_b, cis in config.samples:
-        add(name, size_a, size_b, cis)
-
-    return cases
 
 def compute_flops(path):
     with open(path, "w", newline="") as f:
@@ -193,65 +167,49 @@ def compute_flops(path):
             "name",
             "output_size",
             "reduction_size",
-            "multiplies",
-            "adds",
             "flops",
-            "fma_flops",
+            "memory",
         ])
 
-        for name, shape_a, shape_b, pairs in config.samples:
-            info = contraction_flops(shape_a, shape_b, pairs)
+        for s in config.samples:
             writer.writerow([
-                name,
-                info["output_size"],
-                info["reduction_size"],
-                info["multiplies"],
-                info["adds"],
-                info["flops"],
-                info["fma_flops"],
+                s.name,
+                s.output_size,
+                s.reduction_size,
+                s.flops,
+                s.memory_bytes,
             ])
-
-def contraction_flops(shapeA, shapeB, pairs):
-    contractedA = {i for i, _ in pairs}
-    contractedB = {j for _, j in pairs}
-
-    # sanity check
-    for ia, ib in pairs:
-        assert shapeA[ia] == shapeB[ib]
-
-    output_size = (
-        prod(shapeA[i] for i in range(len(shapeA)) if i not in contractedA)
-        * prod(shapeB[j] for j in range(len(shapeB)) if j not in contractedB)
-    )
-
-    reduction_size = prod(shapeA[i] for i, _ in pairs)
-
-    multiplications = output_size * reduction_size
-    additions = output_size * (reduction_size - 1)
-
-    return {
-        "output_size": output_size,
-        "reduction_size": reduction_size,
-        "multiplies": multiplications,
-        "adds": additions,
-        "flops": multiplications + additions,
-        "fma_flops": 2 * multiplications,
-    }
-
-    print(
-        f"Generated {len(cases)} cases for "
-        f"{len(COMBINATIONS)} backend combinations"
-    )
 
 
 # =========================================================
 # RENDERER
 # =========================================================
 
-def render(case, backend_name, snippet):
-    a_shape = ", ".join(f"{x}uz" for x in case.a_shape)
-    b_shape = ", ".join(f"{x}uz" for x in case.b_shape)
+BENCHMARK_MAIN_FILE = """
+#include <benchmark/benchmark.h>
 
+int main(int argc, char** argv) {
+    benchmark::Initialize(&argc, argv);
+
+    benchmark::ConsoleReporter console;
+    benchmark::CSVReporter csv;
+
+    std::ofstream out("results.csv");
+    csv.SetOutputStream(&out);
+
+    benchmark::RunSpecifiedBenchmarks(&console, &csv);
+}
+"""
+
+def render(case, backend_name, snippet):
+    a_shape = ", ".join(
+        f"{x}uz"
+        for x in case.a_shape
+    )
+    b_shape = ", ".join(
+        f"{x}uz"
+        for x in case.b_shape
+    )
     cis = ", ".join(
         f"std::pair{{{i}uz,{j}uz}}"
         for i, j in case.cis
@@ -263,6 +221,7 @@ def render(case, backend_name, snippet):
         a_shape=a_shape,
         b_shape=b_shape,
         cis=cis,
+        memory=case.memory_mb,
         type_defs=snippet["type_defs"],
         construct=snippet["construct"],
         contraction=snippet["contraction"],
@@ -273,25 +232,41 @@ def render(case, backend_name, snippet):
 # EMITTER
 # =========================================================
 
-def emit_file(
+def emit_case_file(
     backend_name,
     include_block,
     snippet,
-    cases,
+    case,
 ):
-    out = [include_block.strip()]
-    for case in cases:
-        out.append(
-            render(
-                case,
-                backend_name,
-                snippet,
-            )
+    text = []
+    text.append(
+        include_block.strip()
+    )
+    text.append(
+        render(
+            case,
+            backend_name,
+            snippet,
         )
-    out.append("BENCHMARK_MAIN();")
-    pathlib.Path(
-        f"benchmarks/generated/{backend_name}_bench.b.cpp"
-    ).write_text("\n".join(out))
+    )
+
+    filename = (
+        f"benchmarks/generated/"
+        f"{case.name}_{backend_name}.b.cpp"
+    )
+
+    pathlib.Path(filename).write_text(
+        "\n".join(text)
+    )
+
+
+def emit_main(out_dir="benchmarks/generated"):
+    path = pathlib.Path(out_dir) / "main.cpp"
+
+    path.write_text(
+        "#include <benchmark/benchmark.h>\n\n"
+        "BENCHMARK_MAIN();\n"
+    )
 
 
 # =========================================================
@@ -299,32 +274,26 @@ def emit_file(
 # =========================================================
 
 def main():
-    cases = generate_cases()
+    cases = config.samples
 
-    pathlib.Path(
-        "benchmarks/generated"
-    ).mkdir(parents=True, exist_ok=True)
+    out_dir = pathlib.Path("benchmarks/generated")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    emit_main(out_dir)
 
     for tensor_impl, contraction_impl in COMBINATIONS:
-
         backend_name = f"{tensor_impl}_{contraction_impl}"
 
-        include_block = build_include_block(
-            tensor_impl,
-            contraction_impl,
-        )
+        include_block = build_include_block(tensor_impl, contraction_impl)
+        snippet = get_snippet(tensor_impl, contraction_impl)
 
-        snippet = get_snippet(
-            tensor_impl,
-            contraction_impl,
-        )
-
-        emit_file(
-            backend_name=backend_name,
-            include_block=include_block,
-            snippet=snippet,
-            cases=cases,
-        )
+        for case in cases:
+            emit_case_file(
+                backend_name,
+                include_block,
+                snippet,
+                case,
+            )
 
     compute_flops("benchmarks/generated/benchmark_info.csv")
 
