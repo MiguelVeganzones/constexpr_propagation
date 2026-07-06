@@ -12,7 +12,7 @@
 #include <numeric>
 #include <type_traits>
 
-#define TENSOR_INLINE [[gnu::always_inline, gnu::flatten]]
+#define TENSOR_INLINE [[gnu::always_inline, gnu::hot]]
 
 // #define TENSOR_INLINE [[gnu::noinline]]
 

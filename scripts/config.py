@@ -1,14 +1,15 @@
 from dataclasses import dataclass
-from math import prod
 from typing import Tuple, List
+import random
+import math
 
 
 # =========================================================
 # LIMITS
 # =========================================================
 
-MAX_FLOPS = 10**15
-MAX_MEMORY = 2**28
+MAX_FLOPS = 10**12
+MAX_MEMORY = 2**24
 
 SIZES = [
     [2, 4, 8, 16, 32, 64, 128, 256],
@@ -20,6 +21,8 @@ RANKS = [
     [3, 4, 5, 6, 13, 19],
 ]
 
+FLOPS_FILTER_DISTANCE = 0.3
+FLOPS_FILTER_REJECTION_PROBABILITY = 0.4
 
 # =========================================================
 # CASE MODEL
@@ -35,11 +38,11 @@ class Case:
 
     @property
     def a_size(self):
-        return prod(self.a_shape)
+        return math.prod(self.a_shape)
 
     @property
     def b_size(self):
-        return prod(self.b_shape)
+        return math.prod(self.b_shape)
 
     @property
     def output_shape(self):
@@ -65,11 +68,11 @@ class Case:
 
     @property
     def output_size(self):
-        return prod(self.output_shape)
+        return math.prod(self.output_shape)
 
     @property
     def reduction_size(self):
-        return prod(
+        return math.prod(
             self.a_shape[i]
             for i, _ in self.cis
         )
@@ -131,7 +134,7 @@ def tensor_memory(
     shape,
     dtype_bytes=4
 ):
-    return prod(shape) * dtype_bytes
+    return math.prod(shape) * dtype_bytes
 
 
 def case_memory(
@@ -163,11 +166,11 @@ def case_memory(
 # =========================================================
 
 def contraction_flops(case: Case):
-    reduction_size = prod(
+    reduction_size = math.prod(
         case.a_shape[i]
         for i, _ in case.cis
     )
-    output_size = prod(
+    output_size = math.prod(
         case.output_shape
     )
     multiplies = (
@@ -260,43 +263,50 @@ def make_samples():
 # FILTER
 # =========================================================
 
+def filter_by_size(case):
+    return case.flops > MAX_FLOPS
+
+def filter_by_flops(accepted_flops, case):
+    if case.memory_bytes > MAX_MEMORY:
+        return True
+
+    if not accepted_flops:
+        return False
+
+    lflops = math.log10(case.flops)
+    nearest = min(max(lflops, 1) - max(math.log10(f), 1) for f in accepted_flops)
+    if nearest < FLOPS_FILTER_DISTANCE:
+        return random.random() < FLOPS_FILTER_REJECTION_PROBABILITY
+    return False
+
+
 def filter_cases(cases):
     unique = set()
     result = []
-    max_flops = 0
-    max_memory = 0
+    accepted_flops = []
 
     for case in cases:
-        if (
-            case.name not in unique
-            and
-            case.flops <= MAX_FLOPS
-            and
-            case.memory_bytes <= MAX_MEMORY
-        ):
+        if filter_by_flops(accepted_flops, case):
+            header = "Rejected for flops: "
+        elif filter_by_size(case):
+            header = "Rejected for size: "
+        elif case.name in unique:
+            header = "Repeated: "
+        else:
             unique.add(case.name)
             result.append(case)
-            max_flops = max(
-                    max_flops,
-                    case.flops
-                    )
-            max_memory = max(
-                    max_memory,
-                    case.memory_bytes
-                    )
-            # print(
-            #     case.name,
-            #     case.a_shape,
-            #     case.b_shape,
-            #     case.cis,
-            #     {
-            #         "memory MB": case.memory_mb,
-            #         "flops": case.flops,
-            #     }
-            # )
-    print(f"{len(cases)} cases")
-    print( f"max memory: {max_memory / 1024**3:.2f} GB")
-    print( f"max flops: {max_flops:.3e}")
+            accepted_flops.append(case.flops)
+            header = "Accepted: "
+        print(header,
+            case.name,
+            case.a_shape,
+            case.b_shape,
+            case.cis,
+            {
+                "memory MB": case.memory_mb,
+                "flops": case.flops,
+            }
+        )
     return result
 
 
@@ -307,3 +317,6 @@ def filter_cases(cases):
 samples = filter_cases(
     make_samples()
 )
+print(f"{len(samples)} cases")
+print(f"max memory: {max(s.memory_bytes for s in samples) / 1024**2:.3e} MB")
+print(f"max flops:  {max(s.flops for s in samples):.3e} FLOPS")

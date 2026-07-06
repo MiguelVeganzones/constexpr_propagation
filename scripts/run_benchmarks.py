@@ -21,7 +21,7 @@ BENCHMARK_GROUPS = [
 def run_all_benchmarks(executable: Path):
     cmd = [
         str(executable),
-        "--benchmark_repetitions=1",
+        "--benchmark_repetitions=5",
         "--benchmark_format=csv",
         "--benchmark_report_aggregates_only=false",
     ]
