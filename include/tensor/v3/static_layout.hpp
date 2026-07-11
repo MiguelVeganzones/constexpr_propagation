@@ -2,8 +2,8 @@
 #define INCLUDED_STATIC_LAYOUT_V3
 
 #include "common/container_concepts.hpp"
-#include <array>
 #include <cassert>
+#include <concepts>
 #include <numeric>
 #include <utility>
 
@@ -18,10 +18,10 @@ template <containers::concepts::StaticShape Shape>
 class static_layout
 {
 public:
-    using shape_t       = Shape;
-    using size_type     = typename shape_t::size_type;
-    using rank_t        = typename shape_t::rank_t;
-    using index_t       = typename shape_t::index_t;
+    using shape_t   = Shape;
+    using size_type = typename shape_t::size_type;
+    using rank_t    = typename shape_t::rank_t;
+    using index_t   = typename shape_t::index_t;
 
 private:
     inline static constexpr rank_t s_rank    = shape_t::rank();
@@ -157,6 +157,6 @@ private:
 #endif
 };
 
-} // namespace amr::containers
+} // namespace v3
 
 #endif // INCLUDED_STATIC_LAYOUT_V3

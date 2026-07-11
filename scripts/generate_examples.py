@@ -89,8 +89,10 @@ CONTRACTION_IMPLS = {
 }
 
 EXAMPLE_TEMPLATE = """
-static auto E_tc_{name}_{backend}() -> void
+auto main() -> int
 {{
+    static constexpr auto const *const name = "E_tc_{name}_{backend}";
+
     using F = float;
 
     constexpr std::array a_shape{{{a_shape}}};
@@ -110,6 +112,8 @@ static auto E_tc_{name}_{backend}() -> void
 
     {contraction};
     asm volatile ("" ::: "memory");
+
+    return 0;
 }}
 """
 
@@ -133,7 +137,7 @@ def build_include_block(tensor_impl, contraction_impl):
     return f"""
 {CONTRACTION_IMPLS[contraction_impl]["include"]}
 {TENSOR_IMPLS[tensor_impl]["includes"]}
-#include <numeric>
+#include <algorithm>
 """
 
 def get_snippet(tensor_impl, contraction_impl):
@@ -153,9 +157,6 @@ def generate_cases():
         return np.arange(np.prod(shape), dtype=np.float32).reshape(shape)
 
     def add(name, a_shape, b_shape, cis):
-        a = make_tensor(a_shape)
-        b = make_tensor(b_shape)
-
         cases.append(config.Case(
             name=name,
             a_shape=a_shape,
@@ -164,7 +165,7 @@ def generate_cases():
         ))
 
     for s in config.samples:
-        add(s.name, s.a_size, s.b_size, s.cis)
+        add(s.name, s.a_shape, s.b_shape, s.cis)
 
     return cases
 

@@ -87,7 +87,7 @@ Tensor sizes and contraction structure are known at compile time.
 │       ├── error_handling.hpp
 │       ├── parser.hpp
 │       └── utility_concepts.hpp
-├── plotting/
+├── processing/
 ├── report/
 │   └── report.pdf
 ├── scripts/
@@ -104,8 +104,6 @@ Tensor sizes and contraction structure are known at compile time.
 ├── CMakePresets.json
 ├── compiler_flags.txt
 ├── requirements.txt
-├── run_benchmarks.sh
-├── run_build_bench.sh
 ├── LICENSE
 └── README.md
 ```
@@ -218,7 +216,14 @@ make run-<preset>
 Or just run benchmarks:
 
 ```bash
-./run_benchmarks.sh <preset>
+venv/bin/python ./scripts/run_benchmarks.py <preset>
+```
+
+### Cleaning generating files
+
+Generated files and build outputs can be cleared with
+```bash
+make clean
 ```
 
 ## Benchmark Kernel
@@ -252,7 +257,7 @@ Results include:
 Results and plots:
 
 ```text
-python plotting/process.py
+python processing/process.py
 ```
 
 ## Related Work

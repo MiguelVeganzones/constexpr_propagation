@@ -2,11 +2,9 @@
 #define INCLUDED_CONTAINER_MANIPULATIONS
 
 #include "tensor.hpp"
-#include <algorithm>
 #include <array>
 #include <concepts>
 #include <functional>
-#include <numeric>
 #include <ranges>
 #include <type_traits>
 

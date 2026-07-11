@@ -3,13 +3,10 @@
 
 #include "common/container_concepts.hpp"
 #include "loop_control.hpp"
-#include "tensor.hpp"
 #include "utils.hpp"
-#include <algorithm>
 #include <array>
 #include <concepts>
 #include <functional>
-#include <numeric>
 #include <type_traits>
 
 #define TENSOR_INLINE [[gnu::always_inline, gnu::hot]]

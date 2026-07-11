@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 import sys
 
+ITERATIONS = 1
 
 GENERATED = Path("examples/generated")
 BUILD_DIR = Path("build/tmp")
@@ -14,9 +15,11 @@ RESULTS = Path("results/compile_report.csv")
 def compile_file(source: Path, output: Path):
 
     cmd = [
-        "g++",
+        "clang++",
         "-std=c++23",
         "-O3",
+        "-mavx",
+        "-march=native",
         "-I./include",
         "-c",
         str(source),
@@ -37,7 +40,6 @@ def compile_file(source: Path, output: Path):
 
 
 def main():
-    samples = 10
     subprocess.run(
         [
             sys.executable,
@@ -46,8 +48,8 @@ def main():
         check=True
     )
 
-    BUILD_DIR.mkdir(exist_ok=True)
-    RESULTS.parent.mkdir(exist_ok=True)
+    BUILD_DIR.mkdir(parents=True, exist_ok=True)
+    RESULTS.parent.mkdir(parents=True, exist_ok=True)
 
     with RESULTS.open("w") as f:
         f.write("name,build_time\n")
@@ -60,7 +62,7 @@ def main():
 
         output = BUILD_DIR / f"{name}.o"
 
-        for _ in range(samples):
+        for _ in range(ITERATIONS):
             elapsed = compile_file(
                 source,
                 output

@@ -2,11 +2,9 @@
 #define INCLUDED_TENSOR_OPERATIONS_V1
 
 #include "common/container_concepts.hpp"
-#include "tensor.hpp"
-#include <algorithm>
-#include <concepts>
+#include <cassert>
 #include <ranges>
-#include <utility>
+#include <type_traits>
 #include <vector>
 
 namespace v1

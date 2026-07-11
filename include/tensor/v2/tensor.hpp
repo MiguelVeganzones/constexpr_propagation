@@ -4,10 +4,9 @@
 #include "common/container_concepts.hpp"
 #include "utility/utility_concepts.hpp"
 #include <cassert>
-#include <concepts>
 #include <memory>
 #include <numeric>
-#include <ranges>
+#include <span>
 #include <type_traits>
 
 namespace v2

@@ -113,12 +113,12 @@ static void BM_tc_{name}_{backend}(benchmark::State& state)
     std::ranges::fill(a.buffer(), F{{1}});
     std::ranges::fill(b.buffer(), F{{1}});
 
-    std::cerr << "Running {name}_{backend} [{memory} MB]\\n";
+    std::cerr << "Running {name}_{backend} [{memory:.2e} MB] [{flops:.2e} flops]\\n";
 
     for (auto _ : state)
     {{
         {contraction};
-        benchmark::ClobberMemory();
+        benchmark::DoNotOptimize(c);
     }}
 }}
 BENCHMARK(BM_tc_{name}_{backend});
@@ -222,6 +222,7 @@ def render(case, backend_name, snippet):
         b_shape=b_shape,
         cis=cis,
         memory=case.memory_mb,
+        flops=case.flops,
         type_defs=snippet["type_defs"],
         construct=snippet["construct"],
         contraction=snippet["contraction"],

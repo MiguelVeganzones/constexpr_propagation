@@ -6,7 +6,7 @@ include(CTest)
 # ----------------------------
 # Global settings
 # ----------------------------
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if(NOT CMAKE_CONFIGURATION_TYPES)

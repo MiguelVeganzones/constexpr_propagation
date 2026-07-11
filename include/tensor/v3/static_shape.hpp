@@ -4,7 +4,6 @@
 #include "common/container_concepts.hpp"
 #include <algorithm>
 #include <array>
-#include <cassert>
 
 #ifndef NDEBUG
 #    define AMR_CONTAINERS_CHECKBOUNDS
@@ -67,6 +66,6 @@ public:
     }
 };
 
-} // namespace v3::tensor
+} // namespace v3
 
 #endif // INCLUDED_STATIC_SHAPE_3

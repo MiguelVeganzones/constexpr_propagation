@@ -16,7 +16,6 @@ GENERATE_DEPS := \
 	scripts/config.py \
 	scripts/generate_tests.py \
 	scripts/generate_benchmarks.py \
-	$(wildcard scripts/*.py)
 
 GENERATE_STAMP := tests/generated/.stamp
 
@@ -37,8 +36,7 @@ test-%: build-%
 	ctest --test-dir build/$*/tests
 
 run-%: test-%
-	python scripts/run_reference_benchmarks.py
-	sh run_benchmarks.sh $*
+	venv/bin/python scripts/run_benchmarks.py $*
 
 ALL_CONFIGS := $(addprefix configure-,$(PRESETS))
 ALL_BUILDS := $(addprefix build-,$(PRESETS))

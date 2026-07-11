@@ -12,6 +12,28 @@ SUMMARY_SUFFIXES = (
     "_cv",
 )
 
+
+def object_size_df() -> pl.DataFrame:
+    tmp_build_dir = pathlib.Path("tmp/build/gcc")
+    sizes_df = pl.DataFrame(
+        {
+            "name": [p.stem for p in tmp_build_dir.glob("*.o")],
+            "object_size": [p.stat().st_size for p in tmp_build_dir.glob("*.o")],
+        }
+    )
+    PATTERN = r"(.+?)_(.+?)_([A-Za-z0-9]+)"
+    sizes_df = (
+        sizes_df
+        .with_columns(
+            container=pl.col("name").str.extract(PATTERN, 1).str.to_uppercase(),
+            impl=pl.col("name").str.extract(PATTERN, 2).str.to_uppercase(),
+            name=pl.col("name").str.extract(PATTERN, 3),
+        )
+    )
+    print(sizes_df)
+    return sizes_df
+
+
 def read_build_csv(path: pathlib.Path) -> pl.DataFrame:
     df = pl.read_csv(path)
 
@@ -30,10 +52,13 @@ def read_build_csv(path: pathlib.Path) -> pl.DataFrame:
 
     print(results)
     print(info)
-    return results.join(
-        info.select(["name", "flops", "output_size"]),
-        on="name",
-        how="left",
+    return (
+        results
+        .join(
+            info.select(["name", "flops", "output_size"]),
+            on="name",
+            how="left",
+        )
     )
 
 
@@ -45,7 +70,9 @@ def read_benchmark_csv(path: pathlib.Path) -> pl.DataFrame:
         df
         .with_columns(
             source_file=pl.lit(path.name),
+            real_time=pl.col("real_time").cast(pl.Float64),
         )
+        .select(["name","iterations","real_time"])
         .filter(
             ~pl.col("name").str.ends_with("_mean")
             & ~pl.col("name").str.ends_with("_median")
@@ -60,13 +87,22 @@ def read_benchmark_csv(path: pathlib.Path) -> pl.DataFrame:
     )
 
     info = pl.read_csv("benchmarks/generated/benchmark_info.csv")
+    sizes_df = object_size_df()
 
     print(results)
     print(info)
-    return results.join(
-        info.select(["name", "flops", "output_size"]),
-        on="name",
-        how="left",
+    return (
+        results
+        .join(
+            info.select(["name", "flops", "output_size"]),
+            on="name",
+            how="left",
+        )
+        .join(
+            sizes_df.select(["container", "impl", "name", "object_size"]),
+            on=["container", "impl", "name"],
+            how="left",
+        )
     )
 
 
@@ -130,7 +166,9 @@ def plot_scaling(
     runtime_y: str = "real_time",
     agg: str = "mean",
     logy: bool = True,
-    plot_name = 'scale_plot'
+    plot_name = 'scale_plot',
+    line = 'log',
+    unit = 1e-9
 ):
     if df.is_empty():
         return
@@ -166,7 +204,8 @@ def plot_scaling(
         label = f"{impl} {container}"
 
         x = sub[runtime_x]
-        y = sub["time"]
+        print(f"{impl}, {container}, {sub["time"]}")
+        y = sub["time"] * unit
 
         plt.scatter(
             x,
@@ -176,39 +215,33 @@ def plot_scaling(
             label=label
         )
 
-        # plt.plot(
-        #     sub[runtime_x],
-        #     np.maximum.accumulate(sub["time"]),
-        #     color=color_map[(impl, container)],
-        #     linestyle='-',
-        #     linewidth=1.5,
-        # )
+        if line == 'log':
+            def linear(x, a, b):
+                return a * x + b
 
-        def linear(x, a, b):
-            return a * x + b
+            xlog = np.log10(x)
+            ylog = np.log10(y)
 
-        xlog = np.log10(x)
-        ylog = np.log10(y)
-
-        params, covariance = curve_fit(linear, xlog, ylog)
-        a, b = params
-        y_fit = 10**linear(xlog, a, b)
-        plt.plot(
+            params, covariance = curve_fit(linear, xlog, ylog)
+            a, b = params
+            y_fit = 10**linear(xlog, a, b)
+            print(xlog)
+            print(y_fit)
+            plt.plot(
+                    x,
+                    y_fit,
+                    linestyle='-',
+                    linewidth=2
+                    # label=rf"fit: $y={a:.2f}x+{b:.2f}$"
+                    )
+        elif line == 'max':
+            plt.plot(
                 x,
-                y_fit,
-                linewidth=2
-                # label=rf"fit: $y={a:.2f}x+{b:.2f}$"
-                )
-
-        # plt.plot(
-        #     sub[runtime_x],
-        #     sub["time"],
-        #     color=color_map[(impl, container)],
-        #     linestyle='-',
-        #     marker="o",
-        #     linewidth=1.5,
-        #     label=label,
-        # )
+                np.maximum.accumulate(y),
+                color=color_map[(impl, container)],
+                linestyle='-',
+                linewidth=2,
+            )
 
     plt.xscale("log", base=10)
     if logy:
@@ -220,9 +253,14 @@ def plot_scaling(
         plt.xlabel("Memory Footprint [bytes]")
     if runtime_y == "real_time":
         plt.ylabel(f"Runtime ({agg}) [s]")
+        plt.title(f"Runtime scaling")
     if runtime_y == "build_time":
         plt.ylabel(f"Build time ({agg}) [s]")
-    plt.title(f"Scaling comparison")
+        plt.title(f"Build time scaling")
+    if runtime_y == "object_size":
+        plt.ylabel(f"Object size ({agg}) [KB]")
+        plt.ylim(0, 30)
+        plt.title(f"Object size scaling")
 
     plt.legend(fontsize=8, ncols=2)
     plt.tight_layout()
@@ -237,14 +275,17 @@ def process_benchmarks():
     print(df.head())
     s = summary(df)
     print(s)
-
+    aggm = 'median'
     for c in df["impl"].unique():
         for t in df["container"].unique():
             print(f"{t}, {c}")
             m = runtime_matrix(df, t, c, metric="min")
             print(m)
-        plot_scaling(df.filter(pl.col("impl")==c), agg='mean', plot_name=f"{c}")
-    plot_scaling(df, runtime_x="flops", agg='mean', plot_name='all')
+        plot_scaling(df.filter(pl.col("impl")==c), agg=aggm, plot_name=f"{c}")
+    plot_scaling(df, runtime_x="flops", agg=aggm, plot_name='all')
+    plot_scaling(df.filter(pl.col('container').str.slice(1,1) ==
+                           pl.col('impl').str.slice(1,1)), runtime_x="flops",
+                 agg=aggm, plot_name='runtime')
     # plot_scaling(df, runtime_x="footprint")
 
 
@@ -261,9 +302,26 @@ def process_build_times():
             ]).agg(pl.col("build_time").mean())
         )
     plot_scaling(df, runtime_x="flops", runtime_y="build_time",
-                 plot_name="build_times", logy=False)
+                 plot_name="build_times", logy=False, line='max', unit = 1)
+
+
+def process_build_sizes():
+    results_dir = pathlib.Path("results/benchmarking")
+    df = load_all(results_dir)
+    print(df.head())
+    print(df.columns)
+    df = (
+        df.group_by([
+            "container",
+            "impl",
+            "flops",
+            ]).agg(pl.col("object_size").mean())
+        ).filter(pl.col('container') != 'np')
+    plot_scaling(df, runtime_x="flops", runtime_y="object_size",
+                 plot_name="build_sizes", logy=False, line='max', unit = 1/1024)
 
 
 if __name__ == "__main__":
+    process_build_sizes()
     process_benchmarks()
     process_build_times()

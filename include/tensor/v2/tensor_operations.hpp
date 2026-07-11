@@ -2,11 +2,9 @@
 #define INCLUDED_TENSOR_OPERATIONS_V2
 
 #include "common/container_concepts.hpp"
-#include "tensor.hpp"
 #include "tensor_iteration.hpp"
 #include <array>
 #include <concepts>
-#include <ranges>
 
 namespace v2
 {

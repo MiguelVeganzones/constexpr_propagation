@@ -8,8 +8,12 @@ import math
 # LIMITS
 # =========================================================
 
-MAX_FLOPS = 10**12
-MAX_MEMORY = 2**24
+BENCHMARK_MIN_RUNTIME = 2
+BENCHMARK_ITERATIONS = 10
+BENCHMARK_WARMUPS = 2
+
+MAX_FLOPS = 10**11
+MAX_MEMORY = 2**30
 
 SIZES = [
     [2, 4, 8, 16, 32, 64, 128, 256],
@@ -21,8 +25,10 @@ RANKS = [
     [3, 4, 5, 6, 13, 19],
 ]
 
-FLOPS_FILTER_DISTANCE = 0.3
-FLOPS_FILTER_REJECTION_PROBABILITY = 0.4
+FLOPS_FILTER_DISTANCE = 0.2
+FLOPS_FILTER_REJECTION_PROBABILITY = 0.3
+
+random.seed(25236)
 
 # =========================================================
 # CASE MODEL
@@ -314,9 +320,9 @@ def filter_cases(cases):
 # RUN
 # =========================================================
 
-samples = filter_cases(
+samples = sorted(filter_cases(
     make_samples()
-)
+), key=lambda x: x.name)
 print(f"{len(samples)} cases")
 print(f"max memory: {max(s.memory_bytes for s in samples) / 1024**2:.3e} MB")
 print(f"max flops:  {max(s.flops for s in samples):.3e} FLOPS")

@@ -6,25 +6,21 @@ import os
 
 
 OUTPUT_FILE = "results/benchmarking/np_np_results.csv"
-REPEATS = 10
-WARMUP = 3
 
 
 def run_case(name, a_shape, b_shape, cis):
-    # deterministic data (same as your C++ pattern style)
     a = np.ones(np.prod(a_shape), dtype=np.float32).reshape(a_shape)
     b = np.ones(np.prod(b_shape), dtype=np.float32).reshape(b_shape)
 
     axes_a = [i for i, _ in cis]
     axes_b = [j for _, j in cis]
 
-    # warmup (important to avoid first-call bias)
-    for _ in range(WARMUP):
+    for _ in range(config.BENCHMARK_WARMUPS):
         np.tensordot(a, b, axes=(axes_a, axes_b))
 
     rows = []
 
-    for _ in range(REPEATS):
+    for _ in range(config.BENCHMARK_ITERATIONS):
         t0 = time.perf_counter()
         np.tensordot(a, b, axes=(axes_a, axes_b))
         t1 = time.perf_counter()
@@ -34,15 +30,9 @@ def run_case(name, a_shape, b_shape, cis):
         # mimic google benchmark CSV schema
         rows.append([
             f"BM_tc_{name}_np_np",
-            REPEATS,           # iterations (logical single op)
+            1,
             real_time_ns,
-            real_time_ns,      # cpu_time ~ real_time for NumPy
             "ns",
-            "",
-            "",
-            "",
-            "",
-            ""
         ])
 
     return rows

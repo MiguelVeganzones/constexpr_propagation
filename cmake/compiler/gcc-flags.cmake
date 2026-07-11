@@ -69,10 +69,11 @@ set(DEBUG_FLAGS
 set(RELEASE_FLAGS
 	-fno-math-errno
 	-ffast-math
+    -fassociative-math
 	-fno-trapping-math
 	-fstrength-reduce
 	-O3
-    # -flto
+    -flto
 	-fomit-frame-pointer
 )
 

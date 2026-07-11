@@ -11,7 +11,7 @@ namespace timer
 
 using time_int_t = std::uint_fast64_t;
 using clock_t    = std::chrono::steady_clock;
-using duration_t = std::chrono::duration<time_int_t, std::micro>;
+using duration_t = std::chrono::duration<time_int_t, std::nano>;
 
 [[nodiscard, gnu::always_inline]]
 inline auto time(auto&& fn, auto&&... args) noexcept(noexcept(fn)) -> duration_t
