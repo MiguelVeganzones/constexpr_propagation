@@ -89,6 +89,17 @@ CONTRACTION_IMPLS = {
 }
 
 EXAMPLE_TEMPLATE = """
+
+[[gnu::always_inline]]
+inline auto DoNotOptimize(auto& value) -> void
+{{
+#if defined(__clang__)
+  asm volatile("" : "+r,m"(value) : : "memory");
+#else
+  asm volatile("" : "+m,r"(value) : : "memory");
+#endif
+}}
+
 auto main() -> int
 {{
     static constexpr auto const *const name = "E_tc_{name}_{backend}";
@@ -111,7 +122,7 @@ auto main() -> int
     std::ranges::fill(b.buffer(), F{{1}});
 
     {contraction};
-    asm volatile ("" ::: "memory");
+    DoNotOptimize(c);
 
     return 0;
 }}

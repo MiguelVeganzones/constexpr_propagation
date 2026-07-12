@@ -22,6 +22,7 @@ GENERATE_STAMP := tests/generated/.stamp
 $(GENERATE_STAMP): $(GENERATE_DEPS)
 	$(PYTHON) scripts/generate_tests.py
 	$(PYTHON) scripts/generate_benchmarks.py
+	$(PYTHON) scripts/generate_examples.py
 	touch $@
 
 generate: $(GENERATE_STAMP)
@@ -36,7 +37,10 @@ test-%: build-%
 	ctest --test-dir build/$*/tests
 
 run-%: test-%
-	venv/bin/python scripts/run_benchmarks.py $*
+	$(PYTHON) scripts/run_benchmarks.py $*
+
+run-complete-%: run-%
+	$(PYTHON) scripts/run_build_benchmarks.py $*
 
 ALL_CONFIGS := $(addprefix configure-,$(PRESETS))
 ALL_BUILDS := $(addprefix build-,$(PRESETS))

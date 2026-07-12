@@ -257,7 +257,7 @@ Results include:
 Results and plots:
 
 ```text
-python processing/process.py
+python processing/process.py <preset>
 ```
 
 ## Related Work

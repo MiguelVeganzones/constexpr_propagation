@@ -32,7 +32,7 @@ def main():
 
     bin_dir = Path("build") / args.preset / "bin/benchmarks"
 
-    out_dir = Path("results") / "benchmarking"
+    out_dir = Path(f"results") / args.preset / "benchmarking"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if not bin_dir.exists():
@@ -62,7 +62,6 @@ def main():
     # ---------------------------------------------------------
     # run all benchmarks and concatenate CSV output
     # ---------------------------------------------------------
-    # all_csv = ["name,iterations,real_time,time_unit"]
     all_csv = []
 
     executables.sort()

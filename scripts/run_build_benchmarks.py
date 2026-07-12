@@ -1,23 +1,38 @@
 #!/usr/bin/env python3
 
 import subprocess
+import argparse
 import time
 from pathlib import Path
 import sys
+from config import COMPILE_ITERATIONS
 
-ITERATIONS = 1
+COMPILE_ITERATIONS = 3
 
 GENERATED = Path("examples/generated")
-BUILD_DIR = Path("build/tmp")
-RESULTS = Path("results/compile_report.csv")
 
+def compile_file(preset, source: Path, output: Path):
 
-def compile_file(source: Path, output: Path):
+    if 'clang' in preset:
+        compiler = 'clang++'
+    elif 'gcc' in preset:
+        compiler = 'g++'
+    else:
+        raise ValueError(f"Preset not implemented: {preset}")
+
+    if 'release' in preset:
+        opt = '-O3'
+    elif 'relwdebinfo' in preset:
+        opt = '-O2'
+    elif 'debug' in preset:
+        opt = '-O0'
+    else:
+        raise ValueError(f"Preset not implemented: {preset}")
 
     cmd = [
-        "clang++",
+        compiler,
         "-std=c++23",
-        "-O3",
+        opt,
         "-mavx",
         "-march=native",
         "-I./include",
@@ -40,6 +55,10 @@ def compile_file(source: Path, output: Path):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("preset")
+    args = parser.parse_args()
+
     subprocess.run(
         [
             sys.executable,
@@ -47,6 +66,9 @@ def main():
         ],
         check=True
     )
+
+    BUILD_DIR = Path(f"build/{args.preset}/tmp")
+    RESULTS = Path(f"results/{args.preset}/compile_report.csv")
 
     BUILD_DIR.mkdir(parents=True, exist_ok=True)
     RESULTS.parent.mkdir(parents=True, exist_ok=True)
@@ -62,8 +84,9 @@ def main():
 
         output = BUILD_DIR / f"{name}.o"
 
-        for _ in range(ITERATIONS):
+        for _ in range(COMPILE_ITERATIONS):
             elapsed = compile_file(
+                args.preset,
                 source,
                 output
             )

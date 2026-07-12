@@ -1,4 +1,5 @@
 import pathlib
+import argparse
 import polars as pl
 import matplotlib.pyplot as plt
 import itertools
@@ -13,8 +14,8 @@ SUMMARY_SUFFIXES = (
 )
 
 
-def object_size_df() -> pl.DataFrame:
-    tmp_build_dir = pathlib.Path("tmp/build/gcc")
+def object_size_df(preset) -> pl.DataFrame:
+    tmp_build_dir = pathlib.Path(f"build/{preset}/tmp")
     sizes_df = pl.DataFrame(
         {
             "name": [p.stem for p in tmp_build_dir.glob("*.o")],
@@ -62,9 +63,9 @@ def read_build_csv(path: pathlib.Path) -> pl.DataFrame:
     )
 
 
-def read_benchmark_csv(path: pathlib.Path) -> pl.DataFrame:
+def read_benchmark_csv(path: pathlib.Path, preset) -> pl.DataFrame:
     df = pl.read_csv(path)
-
+    print(df)
     PATTERN = r"^BM_tc_([A-Za-z0-9]+)_([A-Za-z0-9]+)_([A-Za-z0-9]+)$"
     results = (
         df
@@ -87,7 +88,7 @@ def read_benchmark_csv(path: pathlib.Path) -> pl.DataFrame:
     )
 
     info = pl.read_csv("benchmarks/generated/benchmark_info.csv")
-    sizes_df = object_size_df()
+    sizes_df = object_size_df(preset)
 
     print(results)
     print(info)
@@ -106,8 +107,10 @@ def read_benchmark_csv(path: pathlib.Path) -> pl.DataFrame:
     )
 
 
-def load_all(results_dir: pathlib.Path) -> pl.DataFrame:
-    dfs = [read_benchmark_csv(p) for p in results_dir.rglob("*.csv")]
+def load_all(preset) -> pl.DataFrame:
+    results_dir = pathlib.Path(f"results/{preset}/benchmarking")
+    baseline_dir = pathlib.Path(f"results/benchmarking")
+    dfs = [read_benchmark_csv(p, preset) for d in [results_dir, baseline_dir] for p in d.rglob("*.csv")]
     return pl.concat(dfs, how="vertical")
 
 
@@ -269,9 +272,8 @@ def plot_scaling(
     plt.show()
 
 
-def process_benchmarks():
-    results_dir = pathlib.Path("results/benchmarking")
-    df = load_all(results_dir)
+def process_benchmarks(preset):
+    df = load_all(preset)
     print(df.head())
     s = summary(df)
     print(s)
@@ -289,8 +291,8 @@ def process_benchmarks():
     # plot_scaling(df, runtime_x="footprint")
 
 
-def process_build_times():
-    build_times_file = pathlib.Path("results/compile_report.csv")
+def process_build_times(preset):
+    build_times_file = pathlib.Path(f"results/{preset}/compile_report.csv")
     df = read_build_csv(build_times_file)
     print(df.head())
     print(df.columns)
@@ -305,9 +307,8 @@ def process_build_times():
                  plot_name="build_times", logy=False, line='max', unit = 1)
 
 
-def process_build_sizes():
-    results_dir = pathlib.Path("results/benchmarking")
-    df = load_all(results_dir)
+def process_build_sizes(preset):
+    df = load_all(preset)
     print(df.head())
     print(df.columns)
     df = (
@@ -322,6 +323,10 @@ def process_build_sizes():
 
 
 if __name__ == "__main__":
-    process_build_sizes()
-    process_benchmarks()
-    process_build_times()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("preset")
+    preset = parser.parse_args().preset
+
+    process_build_sizes(preset)
+    process_benchmarks(preset)
+    process_build_times(preset)
