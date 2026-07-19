@@ -2,6 +2,7 @@
 #define INCLUDED_TENSOR_OPERATIONS_V1
 
 #include "common/container_concepts.hpp"
+#include <algorithm>
 #include <cassert>
 #include <ranges>
 #include <type_traits>

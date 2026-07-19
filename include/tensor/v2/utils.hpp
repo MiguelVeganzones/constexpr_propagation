@@ -1,6 +1,7 @@
 #ifndef INCLUDED_CONTAINER_UTILS_V2
 #define INCLUDED_CONTAINER_UTILS_V2
 
+#include <algorithm>
 #include <array>
 #include <ranges>
 #include <utility>

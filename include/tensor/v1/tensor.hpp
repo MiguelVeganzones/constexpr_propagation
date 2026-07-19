@@ -3,9 +3,10 @@
 
 #include "common/container_concepts.hpp"
 #include "utility/utility_concepts.hpp"
+#include <algorithm>
 #include <cassert>
-#include <numeric>
 #include <memory>
+#include <numeric>
 
 namespace v1
 {

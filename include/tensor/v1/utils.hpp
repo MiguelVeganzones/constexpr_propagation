@@ -3,6 +3,7 @@
 
 #include "common/container_concepts.hpp"
 #include "tensor/v1/tensor.hpp"
+#include <algorithm>
 #include <vector>
 
 namespace v1::utils::types
