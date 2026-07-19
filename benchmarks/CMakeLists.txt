@@ -17,6 +17,7 @@ file(GLOB EXAMPLE_SOURCES CONFIGURE_DEPENDS
 
 add_executable(benchmarks
     ${EXAMPLE_SOURCES}
+    ./generated/init.cpp
 )
 
 target_link_libraries(benchmarks PRIVATE

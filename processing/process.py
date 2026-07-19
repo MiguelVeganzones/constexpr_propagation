@@ -49,7 +49,7 @@ def read_build_csv(path: pathlib.Path) -> pl.DataFrame:
         )
     )
 
-    info = pl.read_csv("benchmarks/generated/benchmark_info.csv")
+    info = pl.read_csv("results/benchmark_info.csv")
 
     print(results)
     print(info)
@@ -87,7 +87,7 @@ def read_benchmark_csv(path: pathlib.Path, preset) -> pl.DataFrame:
         )
     )
 
-    info = pl.read_csv("benchmarks/generated/benchmark_info.csv")
+    info = pl.read_csv("results/benchmark_info.csv")
     sizes_df = object_size_df(preset)
 
     print(results)
@@ -207,7 +207,7 @@ def plot_scaling(
         label = f"{impl} {container}"
 
         x = sub[runtime_x]
-        print(f"{impl}, {container}, {sub["time"]}")
+        print(sub)
         y = sub["time"] * unit
 
         plt.scatter(
@@ -277,6 +277,8 @@ def process_benchmarks(preset):
     print(df.head())
     s = summary(df)
     print(s)
+    df = df.drop_nulls('flops')
+    # df = df.drop_nans()
     aggm = 'median'
     for c in df["impl"].unique():
         for t in df["container"].unique():
@@ -327,6 +329,6 @@ if __name__ == "__main__":
     parser.add_argument("preset")
     preset = parser.parse_args().preset
 
-    process_build_sizes(preset)
     process_benchmarks(preset)
     process_build_times(preset)
+    process_build_sizes(preset)

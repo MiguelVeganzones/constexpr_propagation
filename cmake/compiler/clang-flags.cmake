@@ -57,7 +57,6 @@ set(RELEASE_FLAGS
 	-ffast-math
 	-fno-trapping-math
 	-O3
-    -flto
 	-fomit-frame-pointer
 )
 

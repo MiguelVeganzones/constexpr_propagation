@@ -73,7 +73,6 @@ set(RELEASE_FLAGS
 	-fno-trapping-math
 	-fstrength-reduce
 	-O3
-    -flto
 	-fomit-frame-pointer
 )
 

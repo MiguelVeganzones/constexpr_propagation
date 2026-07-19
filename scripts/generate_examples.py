@@ -19,10 +19,10 @@ TENSOR_IMPLS = {
 using a_t = v1::tensor<F>;
 using b_t = v1::tensor<F>;
 """,
-        "construct": """
-a_t a(a_shape);
-b_t b(b_shape);
+        "cis_setup": """
 const auto cis = v1::utils::types::contraction_index_set<std::size_t>(cis_data);
+""",
+        "allocate": """
 auto c = v1::utils::types::allocate_output_uninitialized(a, b, cis);
 """
     },
@@ -36,10 +36,10 @@ auto c = v1::utils::types::allocate_output_uninitialized(a, b, cis);
 using a_t = v2::tensor<F, a_rank>;
 using b_t = v2::tensor<F, b_rank>;
 """,
-        "construct": """
-a_t a(a_shape);
-b_t b(b_shape);
+        "cis_setup": """
 constexpr auto cis = v2::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+""",
+        "allocate": """
 auto c = v2::utils::types::allocate_output_uninitialized(a, b, cis);
 """
     },
@@ -62,10 +62,10 @@ using b_t = v3::tensor<
     v3::static_layout<v3::static_shape<b_shape>>
 >;
 """,
-        "construct": """
-a_t a{};
-b_t b{};
+        "cis_setup": """
 constexpr auto cis = v3::utils::types::contraction_index_set<std::size_t, order>(cis_data);
+""",
+        "allocate": """
 auto c = v3::utils::allocate_output_uninitialized<cis>(a, b);
 """
     }
@@ -90,41 +90,29 @@ CONTRACTION_IMPLS = {
 
 EXAMPLE_TEMPLATE = """
 
-[[gnu::always_inline]]
-inline auto DoNotOptimize(auto& value) -> void
-{{
-#if defined(__clang__)
-  asm volatile("" : "+r,m"(value) : : "memory");
-#else
-  asm volatile("" : "+m,r"(value) : : "memory");
-#endif
-}}
+using F = float;
 
-auto main() -> int
+constexpr std::array a_shape{{{a_shape}}};
+constexpr std::array b_shape{{{b_shape}}};
+constexpr std::array cis_data{{{cis}}};
+
+constexpr auto a_rank = a_shape.size();
+constexpr auto b_rank = b_shape.size();
+constexpr auto order = cis_data.size();
+
+{type_defs}
+
+{cis_setup}
+
+auto E_tc_{name}_{backend}(a_t const& a, b_t const& b) noexcept -> decltype(auto)
 {{
     static constexpr auto const *const name = "E_tc_{name}_{backend}";
 
-    using F = float;
-
-    constexpr std::array a_shape{{{a_shape}}};
-    constexpr std::array b_shape{{{b_shape}}};
-    constexpr std::array cis_data{{{cis}}};
-
-    [[maybe_unused]] constexpr auto a_rank = a_shape.size();
-    [[maybe_unused]] constexpr auto b_rank = b_shape.size();
-    [[maybe_unused]] constexpr auto order = cis_data.size();
-
-    {type_defs}
-
-    {construct}
-
-    std::ranges::fill(a.buffer(), F{{1}});
-    std::ranges::fill(b.buffer(), F{{1}});
+    {allocate}
 
     {contraction};
-    DoNotOptimize(c);
 
-    return 0;
+    return c;
 }}
 """
 
@@ -157,7 +145,8 @@ def get_snippet(tensor_impl, contraction_impl):
 
     return {
         "type_defs": tensor["type_defs"],
-        "construct": tensor["construct"],
+        "cis_setup": tensor["cis_setup"],
+        "allocate": tensor["allocate"],
         "contraction": contraction["call"]
     }
 
@@ -203,7 +192,8 @@ def render(case, backend_name, snippet):
         b_shape=b_shape,
         cis=cis,
         type_defs=snippet["type_defs"],
-        construct=snippet["construct"],
+        cis_setup=snippet["cis_setup"],
+        allocate=snippet["allocate"],
         contraction=snippet["contraction"],
     )
 

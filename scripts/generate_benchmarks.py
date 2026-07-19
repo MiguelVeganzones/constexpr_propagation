@@ -2,7 +2,7 @@ import numpy as np
 import pathlib
 from dataclasses import dataclass
 from typing import Tuple, List
-import config
+from config import samples
 from math import prod
 import csv
 
@@ -94,9 +94,11 @@ CONTRACTION_IMPLS = {
 }
 
 BENCHMARK_TEMPLATE = """
+using F = float;
+extern F init;
+
 static void BM_tc_{name}_{backend}(benchmark::State& state)
 {{
-    using F = float;
 
     constexpr std::array a_shape{{{a_shape}}};
     constexpr std::array b_shape{{{b_shape}}};
@@ -110,8 +112,8 @@ static void BM_tc_{name}_{backend}(benchmark::State& state)
 
     {construct}
 
-    std::ranges::fill(a.buffer(), F{{1}});
-    std::ranges::fill(b.buffer(), F{{1}});
+    std::ranges::fill(a.buffer(), F{{init}});
+    std::ranges::fill(b.buffer(), F{{init}});
 
     std::cerr << "Running {name}_{backend} [{memory:.2e} MB] [{flops:.2e} flops]\\n";
 
@@ -171,7 +173,7 @@ def compute_flops(path):
             "memory",
         ])
 
-        for s in config.samples:
+        for s in samples:
             writer.writerow([
                 s.name,
                 s.output_size,
@@ -185,20 +187,9 @@ def compute_flops(path):
 # RENDERER
 # =========================================================
 
-BENCHMARK_MAIN_FILE = """
-#include <benchmark/benchmark.h>
-
-int main(int argc, char** argv) {
-    benchmark::Initialize(&argc, argv);
-
-    benchmark::ConsoleReporter console;
-    benchmark::CSVReporter csv;
-
-    std::ofstream out("results.csv");
-    csv.SetOutputStream(&out);
-
-    benchmark::RunSpecifiedBenchmarks(&console, &csv);
-}
+BENCHMARK_INIT_FILE = """
+using F = float;
+auto init = F{1};
 """
 
 def render(case, backend_name, snippet):
@@ -262,11 +253,10 @@ def emit_case_file(
 
 
 def emit_main(out_dir="benchmarks/generated"):
-    path = pathlib.Path(out_dir) / "main.cpp"
+    path = pathlib.Path(out_dir) / "init.cpp"
 
     path.write_text(
-        "#include <benchmark/benchmark.h>\n\n"
-        "BENCHMARK_MAIN();\n"
+        BENCHMARK_INIT_FILE
     )
 
 
@@ -275,7 +265,7 @@ def emit_main(out_dir="benchmarks/generated"):
 # =========================================================
 
 def main():
-    cases = config.samples
+    cases = samples
 
     out_dir = pathlib.Path("benchmarks/generated")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -296,7 +286,7 @@ def main():
                 case,
             )
 
-    compute_flops("benchmarks/generated/benchmark_info.csv")
+    compute_flops("results/benchmark_info.csv")
 
 if __name__ == "__main__":
     main()

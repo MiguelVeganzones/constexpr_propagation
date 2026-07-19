@@ -51,4 +51,4 @@ all-builds: $(ALL_BUILDS)
 all-tests: $(ALL_TESTS)
 
 clean:
-	rm -rf build tests/generated benchmarks/generated
+	rm -rf build tests/generated benchmarks/generated examples/generated
