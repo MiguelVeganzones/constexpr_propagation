@@ -2,9 +2,10 @@ import numpy as np
 import pathlib
 from dataclasses import dataclass
 from typing import Tuple, List
-from config import samples
+import config
 from math import prod
 import csv
+import argparse
 
 
 # =========================================================
@@ -13,7 +14,7 @@ import csv
 
 TENSOR_IMPLS = {
     "t1": {
-        "includes": """
+        "include": """
 #include "tensor/v1/tensor.hpp"
 #include "tensor/v1/utils.hpp"
 #include <iostream>
@@ -31,7 +32,7 @@ auto c = v1::utils::types::allocate_output_uninitialized(a, b, cis);
     },
 
     "t2": {
-        "includes": """
+        "include": """
 #include "tensor/v2/tensor.hpp"
 #include "tensor/v2/utils.hpp"
 #include <iostream>
@@ -49,7 +50,7 @@ auto c = v2::utils::types::allocate_output_uninitialized(a, b, cis);
     },
 
     "t3": {
-        "includes": """
+        "include": """
 #include "tensor/v3/static_layout.hpp"
 #include "tensor/v3/static_shape.hpp"
 #include "tensor/v3/tensor.hpp"
@@ -126,17 +127,6 @@ static void BM_tc_{name}_{backend}(benchmark::State& state)
 BENCHMARK(BM_tc_{name}_{backend});
 """
 
-COMBINATIONS = [
-    ("t1", "c1"),
-
-    ("t2", "c1"),
-    ("t2", "c2"),
-
-    ("t3", "c1"),
-    ("t3", "c2"),
-    ("t3", "c3"),
-]
-
 # =========================================================
 # CASE GENERATION
 # =========================================================
@@ -145,7 +135,7 @@ COMBINATIONS = [
 def build_include_block(tensor_impl, contraction_impl):
     return f"""
 {CONTRACTION_IMPLS[contraction_impl]["include"]}
-{TENSOR_IMPLS[tensor_impl]["includes"]}
+{TENSOR_IMPLS[tensor_impl]["include"]}
 #include <benchmark/benchmark.h>
 #include <numeric>
 """
@@ -161,7 +151,7 @@ def get_snippet(tensor_impl, contraction_impl):
     }
 
 
-def compute_flops(path):
+def log_cases_info(path):
     with open(path, "w", newline="") as f:
         writer = csv.writer(f)
 
@@ -173,7 +163,7 @@ def compute_flops(path):
             "memory",
         ])
 
-        for s in samples:
+        for s in config.samples:
             writer.writerow([
                 s.name,
                 s.output_size,
@@ -181,7 +171,6 @@ def compute_flops(path):
                 s.flops,
                 s.memory_bytes,
             ])
-
 
 # =========================================================
 # RENDERER
@@ -225,6 +214,7 @@ def render(case, backend_name, snippet):
 # =========================================================
 
 def emit_case_file(
+    out_dir,
     backend_name,
     include_block,
     snippet,
@@ -242,17 +232,14 @@ def emit_case_file(
         )
     )
 
-    filename = (
-        f"benchmarks/generated/"
-        f"{case.name}_{backend_name}.b.cpp"
-    )
+    filename = f"{out_dir}/{case.name}_{backend_name}.b.cpp"
 
     pathlib.Path(filename).write_text(
         "\n".join(text)
     )
 
 
-def emit_main(out_dir="benchmarks/generated"):
+def emit_main(out_dir):
     path = pathlib.Path(out_dir) / "init.cpp"
 
     path.write_text(
@@ -260,33 +247,50 @@ def emit_main(out_dir="benchmarks/generated"):
     )
 
 
+def log_benchmark_manifest(path, samples):
+    with open(path, "w", newline="") as f:
+        f.write("set(GENERATED_BENCHMARK_SOURCES\n")
+
+        for tensor_impl, contraction_impl in config.COMBINATIONS:
+            backend_name = f"{tensor_impl}_{contraction_impl}"
+
+            for s in samples:
+                f.write(f"\t${{CMAKE_CURRENT_LIST_DIR}}/{s.name}_{backend_name}.b.cpp\n")
+        f.write(")")
+
+
 # =========================================================
 # MAIN
 # =========================================================
 
 def main():
-    cases = samples
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--out_dir')
+    parser.add_argument('--manifest_path')
+    args = parser.parse_args()
 
-    out_dir = pathlib.Path("benchmarks/generated")
+    out_dir = pathlib.Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     emit_main(out_dir)
 
-    for tensor_impl, contraction_impl in COMBINATIONS:
+    for tensor_impl, contraction_impl in config.COMBINATIONS:
         backend_name = f"{tensor_impl}_{contraction_impl}"
 
         include_block = build_include_block(tensor_impl, contraction_impl)
         snippet = get_snippet(tensor_impl, contraction_impl)
 
-        for case in cases:
+        for case in config.samples:
             emit_case_file(
+                args.out_dir,
                 backend_name,
                 include_block,
                 snippet,
                 case,
             )
 
-    compute_flops("results/benchmark_info.csv")
+    log_cases_info(f"{args.out_dir}/cases_info.csv")
+    log_benchmark_manifest(args.manifest_path, config.samples)
 
 if __name__ == "__main__":
     main()

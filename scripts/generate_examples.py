@@ -3,6 +3,7 @@ import pathlib
 from dataclasses import dataclass
 from typing import Tuple, List
 import config
+import argparse
 
 
 # =========================================================
@@ -106,8 +107,6 @@ constexpr auto order = cis_data.size();
 
 auto E_tc_{name}_{backend}(a_t const& a, b_t const& b) noexcept -> decltype(auto)
 {{
-    static constexpr auto const *const name = "E_tc_{name}_{backend}";
-
     {allocate}
 
     {contraction};
@@ -115,17 +114,6 @@ auto E_tc_{name}_{backend}(a_t const& a, b_t const& b) noexcept -> decltype(auto
     return c;
 }}
 """
-
-COMBINATIONS = [
-    ("t1", "c1"),
-
-    ("t2", "c1"),
-    ("t2", "c2"),
-
-    ("t3", "c1"),
-    ("t3", "c2"),
-    ("t3", "c3"),
-]
 
 # =========================================================
 # CASE GENERATION
@@ -203,6 +191,7 @@ def render(case, backend_name, snippet):
 # =========================================================
 
 def emit_file(
+    out_dir,
     backend_name,
     include_block,
     snippet,
@@ -218,7 +207,7 @@ def emit_file(
             )
         )
         pathlib.Path(
-            f"examples/generated/{backend_name}_{case.name}.e.cpp"
+            f"{out_dir}/{backend_name}_{case.name}.e.cpp"
         ).write_text("\n".join(out))
 
 
@@ -227,13 +216,17 @@ def emit_file(
 # =========================================================
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--out_dir')
+    args = parser.parse_args()
+
     cases = generate_cases()
 
     pathlib.Path(
-        "examples/generated"
+        args.out_dir
     ).mkdir(parents=True, exist_ok=True)
 
-    for tensor_impl, contraction_impl in COMBINATIONS:
+    for tensor_impl, contraction_impl in config.COMBINATIONS:
 
         backend_name = f"{tensor_impl}_{contraction_impl}"
 
@@ -248,6 +241,7 @@ def main():
         )
 
         emit_file(
+            args.out_dir,
             backend_name=backend_name,
             include_block=include_block,
             snippet=snippet,
@@ -256,7 +250,7 @@ def main():
 
     print(
         f"Generated {len(cases)} cases for "
-        f"{len(COMBINATIONS)} backend combinations"
+        f"{len(config.COMBINATIONS)} backend combinations"
     )
 
 

@@ -33,7 +33,6 @@ def compile_file(preset, source: Path, output: Path):
         compiler,
         "-std=c++23",
         opt,
-        "-mavx",
         "-march=native",
         "-I./include",
         "-c",

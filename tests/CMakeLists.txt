@@ -1,5 +1,3 @@
-enable_testing()
-
 include(FetchContent)
 
 FetchContent_Declare(
@@ -10,21 +8,49 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 include(GoogleTest)
 
-file(GLOB TEST_SOURCES CONFIGURE_DEPENDS ./**/*.t.cpp)
+set(GENERATED_DIR
+    ${CMAKE_CURRENT_BINARY_DIR}/generated
+)
 
-foreach(src ${TEST_SOURCES})
-    get_filename_component(target ${src} NAME_WE)
-    add_executable(${target} ${src})
-    target_link_libraries(${target} PRIVATE
-        hpc_seminar
-        hpc_seminar_tests
-        compiler_warnings
-        GTest::gtest_main
+set_property(
+    DIRECTORY
+    APPEND
+    PROPERTY CMAKE_CONFIGURE_DEPENDS
+        ${CMAKE_SOURCE_DIR}/scripts/generate_tests.py
+        ${CMAKE_SOURCE_DIR}/scripts/config.py
+)
+
+message(STATUS "CONFIGURING TESTS")
+execute_process(
+    COMMAND
+        ${Python_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/scripts/generate_tests.py
+            --out_dir=${GENERATED_DIR}
+    COMMAND_ERROR_IS_FATAL ANY
+)
+
+file(GLOB_RECURSE TEST_SOURCES
+    CONFIGURE_DEPENDS
+    "${GENERATED_DIR}/*.t.cpp"
+)
+
+foreach(src IN LISTS TEST_SOURCES)
+
+    cmake_path(GET src STEM  target)
+
+    add_executable(${target}
+        "${src}"
     )
+
+    target_include_directories(${target} PRIVATE "${CMAKE_SOURCE_DIR}/tests")
+
+    target_link_libraries(${target}
+        PRIVATE
+            hpc_seminar
+            compiler_options
+            compiler_sanitizers
+            GTest::gtest_main
+    )
+
     gtest_discover_tests(${target})
 endforeach()
-
-add_custom_target(run_tests
-    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-)

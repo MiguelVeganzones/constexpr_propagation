@@ -5,6 +5,12 @@ import math
 
 
 # =========================================================
+# CONFIG
+# =========================================================
+
+print_cases = False
+
+# =========================================================
 # LIMITS
 # =========================================================
 
@@ -13,7 +19,7 @@ BENCHMARK_ITERATIONS = 10
 BENCHMARK_WARMUPS = 2
 COMPILE_ITERATIONS = 2
 
-MAX_FLOPS = 10**8
+MAX_FLOPS = 10**12
 MAX_MEMORY = 2**30
 
 SIZES = [
@@ -30,6 +36,21 @@ FLOPS_FILTER_DISTANCE = 0.2
 FLOPS_FILTER_REJECTION_PROBABILITY = 0.3
 
 random.seed(25236)
+
+# =========================================================
+# Backend Combinations
+# =========================================================
+
+COMBINATIONS = [
+    ("t1", "c1"),
+
+    ("t2", "c1"),
+    ("t2", "c2"),
+
+    ("t3", "c1"),
+    ("t3", "c2"),
+    ("t3", "c3"),
+]
 
 # =========================================================
 # CASE MODEL
@@ -304,16 +325,17 @@ def filter_cases(cases):
             result.append(case)
             accepted_flops.append(case.flops)
             header = "Accepted: "
-        print(header,
-            case.name,
-            case.a_shape,
-            case.b_shape,
-            case.cis,
-            {
-                "memory MB": case.memory_mb,
-                "flops": case.flops,
-            }
-        )
+        if print_cases:
+            print(header,
+                case.name,
+                case.a_shape,
+                case.b_shape,
+                case.cis,
+                {
+                    "memory MB": case.memory_mb,
+                    "flops": case.flops,
+                }
+            )
     return result
 
 

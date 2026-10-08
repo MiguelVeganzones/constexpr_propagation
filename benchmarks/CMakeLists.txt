@@ -11,37 +11,50 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(benchmark)
 
-file(GLOB EXAMPLE_SOURCES CONFIGURE_DEPENDS
-    ./**/*.b.cpp
+# Prevent -Wpadded -Wswitch-default to propagate to benchmark files
+if(TARGET benchmark)
+    set_target_properties(benchmark PROPERTIES
+        SYSTEM TRUE
+    )
+endif()
+
+set(GENERATED_DIR
+    "${CMAKE_CURRENT_BINARY_DIR}/generated"
 )
 
+set(BENCHMARK_MANIFEST
+    "${GENERATED_DIR}/benchmarks.cmake"
+)
+
+set_property(
+    DIRECTORY
+    APPEND
+    PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${CMAKE_SOURCE_DIR}/scripts/generate_benchmarks.py"
+        "${CMAKE_SOURCE_DIR}/scripts/config.py"
+)
+
+message(STATUS "CONFIGURING BENCHMARKS")
+execute_process(
+    COMMAND
+        "${Python_EXECUTABLE}"
+        "${CMAKE_SOURCE_DIR}/scripts/generate_benchmarks.py"
+        "--out_dir=${GENERATED_DIR}"
+        "--manifest_path=${BENCHMARK_MANIFEST}"
+    COMMAND_ERROR_IS_FATAL ANY
+)
+
+include("${BENCHMARK_MANIFEST}")
+
 add_executable(benchmarks
-    ${EXAMPLE_SOURCES}
-    ./generated/init.cpp
+    ${GENERATED_BENCHMARK_SOURCES}
+    "${GENERATED_DIR}/init.cpp"
 )
 
 target_link_libraries(benchmarks PRIVATE
     hpc_seminar
-    hpc_seminar_benchmarks
+    compiler_options
+    compiler_warnings
     benchmark::benchmark
     benchmark::benchmark_main
 )
-
-set_target_properties(benchmarks PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR_BENCHMARKS}
-)
-
-# foreach(src ${EXAMPLE_SOURCES})
-#     get_filename_component(target ${src} NAME_WE)
-#     add_executable(${target} ${src})
-#     target_link_libraries(${target} PRIVATE
-#         hpc_seminar
-#         hpc_seminar_benchmarks
-#         benchmark::benchmark
-#         benchmark::benchmark_main
-#     )
-#     set_target_properties(${target} PROPERTIES
-#         RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR_BENCHMARKS}
-#     )
-# endforeach()
-

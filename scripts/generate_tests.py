@@ -2,6 +2,7 @@ import numpy as np
 import pathlib
 from dataclasses import dataclass
 from typing import Tuple, List
+import argparse
 
 
 # =========================================================
@@ -15,7 +16,7 @@ BACKEND_INCLUDES = {
 #include "tensor/v1/tensor_operations.hpp"
 #include "tensor/v1/utils.hpp"
 #include <ranges>
-#include "../common/compare.hpp"
+#include "common/compare.hpp"
 """,
 
     "v2": """
@@ -24,7 +25,7 @@ BACKEND_INCLUDES = {
 #include "tensor/v2/tensor_operations.hpp"
 #include "tensor/v2/utils.hpp"
 #include <ranges>
-#include "../common/compare.hpp"
+#include "common/compare.hpp"
 """,
 
     "v3": """
@@ -35,7 +36,7 @@ BACKEND_INCLUDES = {
 #include "tensor/v3/tensor_operations.hpp"
 #include "tensor/v3/utils.hpp"
 #include <ranges>
-#include "../common/compare.hpp"
+#include "common/compare.hpp"
 """
 }
 
@@ -217,13 +218,13 @@ def render(case, backend):
 # EMITTER
 # =========================================================
 
-def emit_file(backend, cases):
+def emit_file(out_dir, backend, cases):
     out = [BACKEND_INCLUDES[backend].strip()]
 
     for c in cases:
         out.append(render(c, backend))
 
-    pathlib.Path(f"tests/generated/{backend}_test.t.cpp").write_text("\n".join(out))
+    pathlib.Path(f"{out_dir}/{backend}_test.t.cpp").write_text("\n".join(out))
 
 
 # =========================================================
@@ -231,13 +232,17 @@ def emit_file(backend, cases):
 # =========================================================
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--out_dir')
+    args = parser.parse_args()
+
     cases = generate_cases()
 
-    p = pathlib.Path("tests/generated/").mkdir(parents=True, exist_ok=True)
+    p = pathlib.Path(args.out_dir).mkdir(parents=True, exist_ok=True)
     for backend in BACKEND_INCLUDES.keys():
-        emit_file(backend, cases)
+        emit_file(args.out_dir, backend, cases)
 
-    print(f"Generated {len(cases)} cases for [v1/v2/v3]x[v1/v2/v3]")
+    print(f"Generated {len(cases)} cases for variants {list(BACKEND_INCLUDES.keys())}")
 
 
 if __name__ == "__main__":
