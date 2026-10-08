@@ -1,28 +1,31 @@
 {
-    "version": 3,
+    "version": 12,
     "configurePresets": [
         {
             "name": "gcc-base",
-            "generator": "Unix Makefiles",
-            "toolchainFile": "cmake/toolchain/gcc.cmake"
+            "generator": "Ninja",
+            "toolchainFile": "cmake/toolchain/gcc.cmake",
+            "binaryDir": "../build-${presetName}"
         },
         {
             "name": "clang-base",
-            "generator": "Unix Makefiles",
-            "toolchainFile": "cmake/toolchain/clang.cmake"
+            "generator": "Ninja",
+            "toolchainFile": "cmake/toolchain/clang.cmake",
+            "binaryDir": "../build-${presetName}",
+            "cacheVariables": {
+                "CMAKE_LINKER_TYPE": "LLD"
+            }
         },
         {
             "name": "gcc-debug",
             "inherits": "gcc-base",
-            "binaryDir": "build/gcc-debug",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "gcc-relwdebinfo",
+            "name": "gcc-relwithdebinfo",
             "inherits": "gcc-base",
-            "binaryDir": "build/gcc-relwdebinfo",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "RelWithDebInfo"
             }
@@ -30,36 +33,29 @@
         {
             "name": "gcc-release",
             "inherits": "gcc-base",
-            "binaryDir": "build/gcc-release",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
         },
-                {
+        {
             "name": "clang-debug",
             "inherits": "clang-base",
-            "binaryDir": "build/clang-debug",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=lld"
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "clang-relwdebinfo",
+            "name": "clang-relwithdebinfo",
             "inherits": "clang-base",
-            "binaryDir": "build/clang-relwdebinfo",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
-                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=lld"
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
             }
         },
         {
             "name": "clang-release",
             "inherits": "clang-base",
-            "binaryDir": "build/clang-release",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_EXE_LINKER_FLAGS": "-fuse-ld=lld"
+                "CMAKE_BUILD_TYPE": "Release"
             }
         }
     ],
@@ -68,7 +64,6 @@
         {
             "name": "build-base",
             "hidden": true,
-            "jobs": 16,
             "verbose": false
         },
         {
@@ -77,9 +72,9 @@
             "configurePreset": "gcc-debug"
         },
         {
-            "name": "gcc-relwdebinfo",
+            "name": "gcc-relwithdebinfo",
             "inherits": "build-base",
-            "configurePreset": "gcc-relwdebinfo"
+            "configurePreset": "gcc-relwithdebinfo"
         },
         {
             "name": "gcc-release",
@@ -92,14 +87,45 @@
             "configurePreset": "clang-debug"
         },
         {
-            "name": "clang-relwdebinfo",
+            "name": "clang-relwithdebinfo",
             "inherits": "build-base",
-            "configurePreset": "clang-relwdebinfo"
+            "configurePreset": "clang-relwithdebinfo"
         },
         {
             "name": "clang-release",
             "inherits": "build-base",
             "configurePreset": "clang-release"
+        }
+    ],
+
+    "testPresets": [
+        {
+            "name": "gcc-debug",
+            "configurePreset": "gcc-debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "gcc-release",
+            "configurePreset": "gcc-release",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "clang-debug",
+            "configurePreset": "clang-debug",
+            "output": {
+                "outputOnFailure": true
+            }
+        },
+        {
+            "name": "clang-release",
+            "configurePreset": "clang-release",
+            "output": {
+                "outputOnFailure": true
+            }
         }
     ]
 }
